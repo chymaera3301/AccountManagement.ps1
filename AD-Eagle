@@ -1,0 +1,735 @@
+#========================================================================
+  $version = "v21.03"
+
+# Version 21.03 -- Nagorski - MAR 03 2021
+#     -- Launch link changed for updated b_MURDOCHS_v21.03.ps1 file.
+#
+# Version 20.12d -- Nagorski - FEB 16 2021
+#     -- Added reminders to notes for specific Distribution Groups
+#     -- Changed password to comply with new PCI requirements
+#
+# Version 20.12c -- Nagorski - DEC 23 2020
+#     -- Adjusted to return "." to "Murdochs.com" title and department after cleaning raw data.
+#
+# Version 20.12b -- Nagorski - DEC 21 2020
+#     -- Adjusted account name creation to accommodate extremely long hyphenated names.
+#
+# Version 20.12a -- Nagorski - DEC 16 2020
+#     -- Added segment to turn ADMIN into separate departments for OU assignment
+#
+# Version 20.12
+#     -- Changed account creation to meet new protocol firstname.lastname
+#     -- Nagorski - DEC 02 2020
+#
+#========================================================================
+
+
+# IMPORT REQUIRED MODULES
+    Import-Module ActiveDirectory
+    Add-Type -AssemblyName PresentationFramework
+    [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+
+
+# DISPLAY INSTRUCTION TO GET ID NUMBERS
+#    [System.Windows.MessageBox]::Show('To continue, copy new hire line to clipboard, then click "OK"')
+
+
+[System.Console]::Title = "      MURDOCH'S NEW USER CREATION $version"
+mode con:cols=80 lines=70
+
+
+#/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+# FUNCTION - GET CLIPBOARD
+# Clipboard code from -- https://www.bgreco.net/powershell/get-clipboard/
+# ----------------------------------------------------------------------
+
+function Get-Clipboard([switch] $Lines) {
+if($Lines) {
+$cmd = {
+Add-Type -Assembly PresentationCore
+[Windows.Clipboard]::GetText() -replace "`r", '' -split "`n"
+}
+} else {
+$cmd = {
+Add-Type -Assembly PresentationCore
+[Windows.Clipboard]::GetText()
+}
+}
+if([threading.thread]::CurrentThread.GetApartmentState() -eq 'MTA') {
+& powershell -Sta -Command $cmd
+} else {
+& $cmd
+}
+}
+
+#/\/\/\/\/\/\/\/\/\/\ END OF GET CLIPBOARD FUNCTION  /\/\/\/\/\/\/\/\/\
+#\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
+# Read-Host -Prompt "Press Enter to continue" << BREAK POINT FOR TESTING
+
+#---------------- GET CURRENT CLIPBOARD --------------------------
+
+    $RAWclip = (Get-Clipboard -foo.txt -raw)
+
+    write-host " "
+    write-host "<------------ MURDOCH'S NEW HIRE SCRIPT ------------>"
+    write-host " "
+    write-host "FROM CLIPBOARD ::"
+    " > $RAWclip"
+
+
+#---------------- CONVERT BAD TEXT CODE ------------------
+
+    # Regular Expression - Unicode - Unicode Categories
+    # http://www.lazywinadmin.com/2015/08/powershell-remove-special-characters.html
+    # Each Unicode character belongs to a certain category.
+    # You can match a single character belonging to the "letter" category with \p{L}.
+    # Same for Numbers, you can use \p{Nd} for Decimals.
+
+    
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # Create placeholders for spaces and dashes
+        $RAWclip = $RAWclip -replace ' ','_'
+        $RAWclip = $RAWclip -replace '-','!'
+	$RAWclip = $RAWclip -replace "'",'111111'
+    
+        # Strip out unrecognizable characters, omitting " / " for piping.
+          # Decode: "^" means find everything which isn't in the string
+	  # "\p{l} means all letters, "\p{Nd} means all numbers
+        $RAWinfo = $RAWclip -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+        
+        # Replace spaces and dashes
+        $RAWinfo = $RAWinfo -replace '_',' '
+        $RAWinfo = $RAWinfo -replace '!','-'
+	$RAWinfo = $RAWinfo -replace '111111',"'"
+
+	$RAWinfo = $RAWinfo -replace 'Murdochscom',"Murdochs.com"  # Restore proper formatting
+        
+        # Remove any leading or trailing spaces
+        # $RAWinfo = $RAWinfo -replace '\/ ','\/'
+        # $RAWinfo = $RAWinfo -replace ' \/','\/'
+                
+        $RAWinfo | clip
+        
+        write-host " "
+        write-host " "
+        write-host "CLEANED CLIPBOARD TEXT ::"
+        " > $RAWinfo"
+        
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      
+
+
+#---------------- SPLIT INTO ARRAY -----------------------
+
+# GET LINES FROM CLIPBOARD
+    $arr = ($RAWinfo).Split("`n")
+    
+    # GET LINES FROM CLIPBOARD
+    $arr = ($RAWinfo).Split("/")
+    
+    #----- BREAK ARRAY INTO SEPARATE VARIABLES -----
+    #
+    #         [0]  /[1] /[2]  /[3]  /[4]    /[5]           /[6] /[7]
+    # Format: Wild/Bill/Kelso/98765/Clifton/Clothing Assoc/0123/Hardside
+ 
+ 
+    $NAMEfirst  = $arr[0]
+        $NAMEfirst = $NAMEfirst.TrimStart()
+        $NAMEfirst = $NAMEfirst.TrimEnd()  
+    $NAMEmiddle = $arr[1]
+        $NAMEmiddle = $NAMEmiddle.TrimStart()
+        $NAMEmiddle = $NAMEmiddle.TrimEnd()
+    $NAMElast = $arr[2]
+        $NAMElast = $NAMElast.TrimStart()
+        $NAMElast = $NAMElast.TrimEnd()
+    $ID = $arr[3]
+        $ID = $ID.TrimStart()
+        $ID = $ID.TrimEnd()
+    $SITE = $arr[4]
+        $SITE = $SITE.TrimStart()
+        $SITE = $SITE.TrimEnd()
+    $STORE = $arr[4]
+        $STORE = $STORE.TrimStart()
+        $STORE = $STORE.TrimEnd()
+        
+        #----- ADD UNDERSCORE TO ACCOMMODATE MRaH_v3.Options
+        if ($STORE -eq 'Four Corners') {   
+        $STORE = "Four_Corners"
+        }
+        
+        if ($STORE -eq 'Casper') {   
+        $STORE = "Casper_Evansville"
+        }
+        
+        
+        #----- CLEAN ANY EXTRA CHARACTERS FOR "ADMIN"
+        $SITE_temp = $site.Substring(0,5)
+        if ([string]"Admin" -like $SITE_temp)
+        {$STORE = "Admin" }
+
+    
+    $TITLE = $arr[5]
+        $TITLE = $TITLE.TrimStart()
+        $TITLE = $TITLE.TrimEnd()
+
+    $SSNfour = '{0:d4}' -f [int]$arr[6].Trim() # AD script modifies this to correct as integer and insure 4 digit number string.
+
+    $DEPT = $arr[7]
+        $DEPT = $DEPT.TrimStart()
+        $DEPT = $DEPT.TrimEnd()
+
+
+#/\/\/\/\/\/\/\/\/\/\ END of SPLIT INTO ARRAY /\/\/\/\/\/\/\/\/\/\
+
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # Create upper and lower case working account names
+
+    $NAMEfirst_upper = $NAMEfirst.toupper()
+    $NAMEmiddle_upper = $NAMEmiddle.toupper()
+    $NAMElast_upper = $NAMElast.toupper()
+    
+    $NAMEfirst_lower = $NAMEfirst.tolower()
+    $NAMEmiddle_lower = $NAMEmiddle.tolower()
+    $NAMElast_lower = $NAMElast.tolower()
+
+    # Create scrubbed account names
+    $NAMEfirst_scrubbed = $NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+    $NAMElast_scrubbed = $NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+ 	  #  $NAMElast_scrubbed_u = $NAMElast_scrubbed.toupper()
+  	 # $NAMElast_scrubbed_l = $NAMElast_scrubbed.tolower()
+    
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CHECK WHETHER AD ACCOUNT EXISTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+#---------------- CHECK WHETHER EMPLOYEE ID EXISTS = REHIRE ---------------------------------
+If($ID -ne '') {
+$IDtest = Get-ADUser -Filter {employeeID -eq $ID} 
+    If($IDtest)
+    {
+        # NEW HIRE IS A REHIRE -------------------------
+	write-host ""
+        write-host "     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"
+        write-host "     /////////////////////////////////////////////////////////////////"
+        write-host "     \\\\\                                                       \\\\\"
+        write-host "     /////            T H I S   I S   A   R E H I R E            /////"
+        write-host "     \\\\\                                                       \\\\\"
+        write-host "     /////        R E E N A B L E   M A N U A L L Y   O R        /////"
+        write-host "     \\\\\                                                       \\\\\"
+        write-host "     /////  D E L E T E   I N   A D   T H E N   R E C R E A T E  /////"
+        write-host "     \\\\\                                                       \\\\\"
+        write-host "     /////                                                       /////"
+        write-host "     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"
+        write-host "     /////////////////////////////////////////////////////////////////"
+	write-host "" 
+Read-Host -Prompt "Close script or press Enter to continue"
+    }
+
+}
+
+# Read-Host -Prompt "Press Enter to continue" # << BREAK POINT FOR TESTING
+
+write-host " "
+write-host "CHECKING AD ACCOUNT NAME ::"
+write-host "  Scrubbing names of non-letter characters : $NAMEfirst_scrubbed $NAMElast_scrubbed" # < Preston III becomes Preston
+# NOTE : The above scrubb routine does not remove I, II, III, etc suffixes.
+
+
+# BUILD NAME CHOICES
+# Create AD test IDs
+    # Create variables
+    $AD_a = ""
+    $AD_b = ""
+    $AD_c = ""
+    $AD_d = ""
+    # $AD_unused = holding for available AD ID
+
+# $AD_a = normal state > first name . last name  (Wild.Kelso)
+    $AD_a = "$NAMEfirst_scrubbed.$NAMElast_scrubbed"
+
+# $AD_b =  first name . middle initial . last name  (Wild.B.Kelso)
+    if ($NAMEmiddle -ne '') { $AD_b = "$NAMEfirst_scrubbed.$NAMEmiddle.$NAMElast_scrubbed" }
+	Else {
+		$AD_b = $NAMEfirst_scrubbed.SubString(0,3)
+		$AD_b = "$AD_b.$NAMElast_scrubbed"
+		}
+
+# $AD_c = alternate > first name initial + middle name initial . last name  (W.B.Kelso)
+    if ($NAMEmiddle -ne '') { $AD_c = $NAMEfirst_scrubbed.SubString(0,1)
+	$AD_c = "$AD_c.$NAMEmiddle.$NAMElast_scrubbed" }
+	Else {
+		$AD_c = $NAMEfirst_scrubbed.SubString(0,2)
+		$AD_c = "$AD_c.$NAMElast_scrubbed"
+		}
+
+# $AD_d = alternate > first name first initial last name  (WKelso)
+# Note : Changed 21 Dec 2020 TJN. Problem account was "Katelynn Headdress-Schieffert" >> KHeaddressSchieffert (20)
+    if ($NAMEmiddle -ne '') { $AD_d =  $NAMEfirst_scrubbed.SubString(0,1)
+    	$AD_d =  "$AD_d$NAMElast_scrubbed" }
+	Else {
+		$AD_d = $NAMEfirst_scrubbed[0]
+		$AD_d = "$AD_d$NAMElast_scrubbed"
+		}
+
+write-host " "
+write-host " "
+write-host "AD USER NAME OPTIONS ::"
+
+# Check AD ID availability. Run from least to most desirable so that final selection is best.
+
+# TEST CHOICE D -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+If($AD_d -ne '') {
+
+$AD_temp = Get-ADUser -Filter {SamAccountName -eq $AD_d} 
+    If($AD_temp)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $AD_d  Option 3 - IN USE"   
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+	# TEST AGAINST PROXIES
+	If(Get-ADUser -Filter "proxyAddresses -like '*$AD_d*'")
+		{WRITE-HOST "  $AD_d  Option 3 - IN USE"}
+	ELSE {
+		write-host "  $AD_d  Option 3 - available"
+		$AD_unused = $AD_d
+		}  
+    }
+    }
+
+# TEST CHOICE C -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+If($AD_c -ne '') {
+$AD_temp = Get-ADUser -Filter {SamAccountName -eq $AD_c} 
+    If($AD_temp)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $AD_c  Option 2 - IN USE"    
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+	# TEST AGAINST PROXIES
+	If(Get-ADUser -Filter "proxyAddresses -like '*$AD_c*'")
+		{WRITE-HOST "  $AD_c  Option 2 - IN USE"}
+
+	# TEST FOR NAME LENGTH - sAMAccountName CAN NOT EXCEED 20 CHARACTERS
+	If(20 -lt $AD_c.length)
+	{WRITE-HOST "  $AD_c Option 2 > NAME TOO LONG at"$AD_c.length"characters." -foreground BLACK -background YELLOW}
+
+	ELSE {
+		write-host "  $AD_c  Option 2 - available"
+		$AD_unused = $AD_c
+		} 
+    }
+    }
+
+# TEST CHOICE B -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+If($AD_b -ne '') {
+$AD_temp = Get-ADUser -Filter {SamAccountName -eq $AD_b} 
+    If($AD_temp)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $AD_b  Option 1 - IN USE"     
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+
+	# TEST AGAINST PROXIES
+	If(Get-ADUser -Filter "proxyAddresses -like '*$AD_b*'")
+		{WRITE-HOST "  $AD_b  Option 1 - IN USE"}
+
+	# TEST FOR NAME LENGTH - sAMAccountName CAN NOT EXCEED 20 CHARACTERS
+	If(20 -lt $AD_b.length)
+	{WRITE-HOST "  $AD_b Option 1 > NAME TOO LONG at"$AD_b.length"characters." -foreground BLACK -background YELLOW}
+
+	ELSE {
+		write-host "  $AD_b  Option 1 - available"
+		$AD_unused = $AD_b
+		}
+    }
+    }
+
+# TEST CHOICE A -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+If($AD_a -ne '') {
+$AD_temp = Get-ADUser -Filter {SamAccountName -eq $AD_a} 
+    If($AD_temp)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $AD_a  First choice - IN USE"
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+
+	# TEST AGAINST PROXIES
+	If(Get-ADUser -Filter "proxyAddresses -like '*$AD_a*'")
+		{WRITE-HOST "  $AD_a  Option 1 - IN USE"}
+
+	# TEST FOR NAME LENGTH - sAMAccountName CAN NOT EXCEED 20 CHARACTERS
+	If(20 -lt $AD_a.length)
+	{WRITE-HOST "  $AD_a > NAME TOO LONG at"$AD_a.length"characters." -foreground BLACK -background YELLOW}
+
+	ELSE {
+		write-host "  $AD_a  First choice - available"
+		$AD_unused = $AD_a
+		}
+    }
+    }
+
+write-host "  > USING AD USER NAME :: "$AD_unused -foreground YELLOW #-nonewline
+write-host "AD check DONE"
+
+# /\/\/\/\/\/\/\/\/\/\ END of CHECK WHETHER AD ACCOUNT EXISTS /\/\/\/\/\/\/\/\/\/\
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CHECK WHETHER EAGLE ACCOUNT EXISTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#---------------- CHECK WHETHER EAGLE ACCOUNT EXISTS ---------------------------------
+# Check Eagle ID from AD. Run from least to most desirable so that final selection is best.
+
+#Create Eagle test IDs
+    # Create variables
+    $EAGLE_a = ""
+    $EAGLE_b = ""
+    $EAGLE_c = ""
+    $EAGLE_d = ""
+    $EAGLE_e = ""
+    # $EAGLE = holding for available Eagle ID
+
+# $EAGLE_a = normal state > first + middle + last initials			(WBK)
+    if ($NAMEmiddle -ne '') {
+	$EAGLE_a = $NAMEfirst_scrubbed[0]+$NAMEmiddle[0]+$NAMElast_scrubbed[0]
+	$EAGLE_a = $EAGLE_a.toupper()
+	}
+	Else {
+	$EAGLE_a = $NAMEfirst_scrubbed[0]+$NAMEfirst_scrubbed[1]+$NAMElast_scrubbed[0]
+	$EAGLE_a = $EAGLE_a.toupper()
+	}
+
+# $EAGLE_b = NMI > first + last name first and second letters			(WKE)
+	$EAGLE_b = $NAMEfirst_scrubbed[0]+$NAMElast_scrubbed[0]+$NAMElast_scrubbed[1]
+	$EAGLE_b = $EAGLE_b.toupper()
+   
+# $EAGLE_c = alternate > first + middle + last name first and second letters	(WBKE)
+    if ($NAMEmiddle -ne '') {
+	$EAGLE_c = $NAMEfirst_scrubbed[0]+$NAMEmiddle[0]+$NAMElast_scrubbed[0]+$NAMElast_scrubbed[1]
+	$EAGLE_c = $EAGLE_c.toupper()
+	}
+	Else {
+	$EAGLE_c = $NAMEfirst_scrubbed[0]+$NAMElast_scrubbed[0]+$NAMElast_scrubbed[1]+$NAMElast_scrubbed[2]
+	$EAGLE_c = $EAGLE_c.toupper()
+	}
+
+# $EAGLE_d = alternate > first name first and second letters + last name first and second letters  (WIKE)
+	$EAGLE_d = $NAMEfirst_scrubbed[0]+$NAMEfirst_scrubbed[1]+$NAMElast_scrubbed[0]+$NAMElast_scrubbed[1]
+	$EAGLE_d = $EAGLE_d.toupper()
+
+# $EAGLE_e = alternate > first name first three letters + last name first and second letter  (WILK)
+	$EAGLE_e = $NAMEfirst_scrubbed[0]+$NAMEfirst_scrubbed[1]+$NAMEfirst_scrubbed[2]+$NAMElast_scrubbed[0]
+	$EAGLE_e = $EAGLE_e.toupper()
+
+write-host " "
+write-host " "
+write-host "EAGLE INITIALS OPTIONS ::"
+
+
+If($EAGLE_e -ne '') {
+$EAGLEuser = Get-ADUser -Filter {extensionAttribute10 -eq $EAGLE_e} 
+    If($EAGLEuser)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $EAGLE_e  Option 4 - IN USE"   
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+        write-host "  $EAGLE_e  Option 4 - available"  
+        $EAGLE = $EAGLE_e   
+    }
+    }
+
+If($EAGLE_d -ne '') {
+$EAGLEuser = Get-ADUser -Filter {extensionAttribute10 -eq $EAGLE_d} 
+    If($EAGLEuser)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $EAGLE_d  Option 3 - IN USE"   
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+        write-host "  $EAGLE_d  Option 3 - available"  
+        $EAGLE = $EAGLE_d   
+    }
+    }
+
+If($EAGLE_c -ne '') {
+$EAGLEuser = Get-ADUser -Filter {extensionAttribute10 -eq $EAGLE_c} 
+    If($EAGLEuser)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $EAGLE_c  Option 2 - IN USE"    
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+        write-host "  $EAGLE_c  Option 2 - available"  
+        $EAGLE = $EAGLE_c   
+    }
+    }
+
+If($EAGLE_b -ne '') {
+$EAGLEuser = Get-ADUser -Filter {extensionAttribute10 -eq $EAGLE_b} 
+    If($EAGLEuser)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $EAGLE_b  Option 1 - IN USE"     
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+        write-host "  $EAGLE_b  Option 1 - available"
+        $EAGLE = $EAGLE_b  
+    }
+    }
+
+If($EAGLE_a -ne '') {
+$EAGLEuser = Get-ADUser -Filter {extensionAttribute10 -eq $EAGLE_a} 
+    If($EAGLEuser)
+    {
+        # ID EXISTS -------------------------
+        write-host "  $EAGLE_a  First choice - IN USE"
+    }
+    Else
+    {
+        # ID DOES NOT EXIST -------------------------
+        write-host "  $EAGLE_a  First choice - available"  
+        $EAGLE = $EAGLE_a
+    }
+    }
+
+write-host "  > USING EAGLE INITIALS ::" $EAGLE -foreground YELLOW
+
+# /\/\/\/\/\/\/\/\/\/\ END of CHECK WHETHER EAGLE ACCOUNT EXISTS /\/\/\/\/\/\/\/\/\/\
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# DISPLAY PASSWORD TO USE -------------------------
+    write-host ""
+    write-host " "
+    write-host "PASSWORD ::"
+    write-host "  > SMILE_$SSNfour" -foreground YELLOW
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#----- IDENTIFY STORE ID
+if ([string]"Admin" -match $STORE) { $STOREid = 1} # << ADMIN
+if ($SITE -eq 'Bozeman') 	{ $STOREid = 1}
+if ($SITE -eq 'Kalispell') 	{ $STOREid = 2}
+if ($SITE -eq 'Miles City') 	{ $STOREid = 3}
+if ($SITE -eq 'Helena') 	{ $STOREid = 4}
+if ($SITE -eq 'Missoula') 	{ $STOREid = 5}
+if ($SITE -eq 'Dillon') 	{ $STOREid = 6}
+if ($SITE -eq 'Hamilton') 	{ $STOREid = 7}
+if ($SITE -eq 'Butte') 		{ $STOREid = 8}
+if ($SITE -eq 'Northern DC') 	{ $STOREid = 9}
+if ($SITE -eq 'Polson') 	{ $STOREid = 10}
+if ($SITE -eq 'Southern DC') 	{ $STOREid = 11}
+#				no store 12
+if ($SITE -eq 'Montrose') 	{ $STOREid = 13}
+if ($SITE -eq 'Longmont') 	{ $STOREid = 14}
+if ($SITE -eq 'Salida') 	{ $STOREid = 15}
+if ($SITE -eq 'Clifton') 	{ $STOREid = 16}
+if ($SITE -eq 'Littleton') 	{ $STOREid = 17}
+if ($SITE -eq 'Scottsbluff') 	{ $STOREid = 18}
+if ($SITE -eq 'Craig') 		{ $STOREid = 19}
+if ($SITE -eq 'Evanston') 	{ $STOREid = 20}
+if ($SITE -eq 'Fort Morgan') 	{ $STOREid = 21}
+#				no store 22
+if ($SITE -eq 'Cheyenne') 	{ $STOREid = 23}
+if ($SITE -eq 'Casper') 	{ $STOREid = 24}
+if ($SITE -eq 'Greeley') 	{ $STOREid = 25}
+if ($SITE -eq 'Laramie') 	{ $STOREid = 26}
+if ($SITE -eq 'Westminster') 	{ $STOREid = 27}
+if ($SITE -eq 'Parker') 	{ $STOREid = 28}
+if ($SITE -eq 'Rock Springs') 	{ $STOREid = 29}
+if ($SITE -eq 'Four Corners') 	{ $STOREid = 30}
+if ($SITE -eq 'Silverthorne') 	{ $STOREid = 31}
+#				no store 32
+if ($SITE -eq 'Home Office') 	{ $STOREid = 33}
+if ($SITE -eq 'Columbia Falls') { $STOREid = 34}
+if ($SITE -eq 'Fraser') 	{ $STOREid = 35}
+if ($SITE -eq 'Salmon') 	{ $STOREid = 36}
+if ($SITE -eq 'Livingston') 	{ $STOREid = 37}
+if ($SITE -eq 'Castle Rock') 	{ $STOREid = 38}
+if ($SITE -eq 'Powell') 	{ $STOREid = 39}
+if ($SITE -eq 'Riverton') 	{ $STOREid = 40}
+if ($SITE -eq 'Ecommerce') 	{ $STOREid = 99}
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#----- IDENTIFY ADMIN OU
+if ([string]"Admin" -match $STORE -AND ($DEPT -match "Finance")) {$STORE = "admFIN"}
+if ([string]"Admin" -match $STORE -AND ($DEPT -match "Murdochs.com")) {$STORE = "admCOM"}
+if ([string]"Admin" -match $STORE -AND ($DEPT -match "Human Resources")) {$STORE = "admHR"}
+if ([string]"Admin" -match $STORE -AND ($DEPT -match "Information Technology")) {$STORE = "admIT"}
+if ([string]"Admin" -match $STORE -AND ($DEPT -match "Marketing")) {$STORE = "admMKT"}
+if ([string]"Admin" -match $STORE -AND ($DEPT -match "Operations")) {$STORE = "admOPS"}
+if ([string]"Admin" -match $STORE -AND ($DEPT -like "*Purchasing*")) {$STORE = "admPUR"}
+	# Purchasing is now divided into Purchasing Hardside & Purchasing Softside
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	# IDENTIFY IF DC EMPLOYEE NEEDING PATHGUIDE --------------------------------------------------------------
+	# >>> PENDING
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# IDENTIFY TITLE AND DEPARTMENT FOR SPECIAL SERVICES (I.E., PHONE AND LICENSING)
+
+if ([string]"Admin" -match $STORE -OR ($title -like "*Manager*") -OR ($title -like "*Book*") -OR ($title -like "*Receiving*") -OR ($title -like "*Lead*"))
+        {
+        $NOTE = "$NOTE
+///// FLAGGED FOR PHONE AND LICENSING
+  > Phone extension (New or re-assignment?) : _____________ 
+  > Send phone registration email           : _____________
+  > Set up MFA                              : _____________
+  > Need external email send privileges?    : _____________
+  > Need work remotely privileges?          : _____________
+  > Upgrade MS Licenses                     : _____________
+  > Create personal folder on Epic          : _____________
+  > Update Eagle terminal assignment in NTA & Confluence."
+        }
+
+
+if ($DEPT -like "*Animal*") {$NOTE = "$NOTE
+>> Added $DEPT Department employee to distribution group :
+     Animal Health Specialist"
+        }
+
+if ($TITLE -like "*Boot*") {$NOTE = "$NOTE
+>> Added $TITLE employee to distribution group :
+     Boot Specialist"
+        }
+
+if ($DEPT -like "*Clothing*") {$NOTE = "$NOTE
+>> Added $DEPT Department employee to distribution groups :
+     $Store Clothing
+     Softgoods - All"
+        }
+
+if ($DEPT -like "*Finance*") {$NOTE = "$NOTE
+>> Added $DEPT Department employee to distribution groups :
+     Accounting (AD Global Security Group)
+     Accounts Payable (AD Global Security Group)
+     finance-confluence-users (AD Global Security Group)
+     Remote Desktop Users (AD Global Security Group)
+>> Microsoft license elevated from Office 365 F3 to Microsoft 365 E3
+>> PHONE AND LICENSING
+  > Phone extension (New or re-assignment?) : _____________ 
+  > Send phone registration email           : _____________
+  > Set up MFA                              : _____________
+  > Need external email send privileges?    : _____________
+  > Need work remotely privileges?          : _____________
+  > Upgrade MS Licenses                     : _____________
+  > Create personal folder on Epic          : _____________
+  > Update Eagle terminal assignment in NTA & Confluence."
+        }
+
+if ($DEPT -like "*Sporting*") {$NOTE = "$NOTE
+>> Added $DEPT Department employee to distribution groups :
+     Sporting Goods Department
+     Sporting Goods (AD Global Security Group)"
+        }
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
+
+write-host ""
+write-host "<--------------------------------------------------------------------------->"
+write-host "EXPORTING TO CLIPBOARD FOR AD TOOL ::"
+
+
+# [0]        /[1]        /[2]      /[3]/[4]   /[5]   /[6]     /[7]  /[8]   /[9]       /[10]    //[12] ///[15]
+# $NAMEfirst/$NAMEmiddle/$NAMElast/$ID/$STORE/$TITLE/$SSNfour/$DEPT/$EAGLE/$AD_unused/$STOREid//$SITE///$NOTE
+
+#write-host "  > $NAMEfirst/$NAMEmiddle/$NAMElast/$ID/$STORE/$TITLE/$SSNfour/$DEPT/$EAGLE/$AD_unused/$STOREid//$SITE///$NOTE"
+
+$CLIPBOARDexport = "$NAMEfirst/$NAMEmiddle/$NAMElast/$ID/$STORE/$TITLE/$SSNfour/$DEPT/$EAGLE/$AD_unused/$STOREid//$SITE///$NOTE" | clip
+
+
+write-host ""
+write-host "First Name    : "$NAMEfirst		#  [0]
+write-host "First Middle  : "$NAMEmiddle	#  [1]
+write-host "Last Name     : "$NAMElast		#  [2]
+write-host "Employee ID   : "$ID		#  [3]
+write-host "Store         : "$STORE		#  [4]
+write-host "Title         : "$TITLE		#  [5]
+write-host "Department    : "$DEPT		#  [7]
+write-host "SSN (last 4)  : "$SSNfour		#  [6]
+write-host "Eagle ID      : "$EAGLE		#  [8]
+write-host "AD Login      : "$AD_unused		#  [9]
+write-host "Store ID      : "$STOREid		# [10]
+write-host ""
+write-host ""
+write-host "/// NOTES //////////////////////" -foreground YELLOW #-nonewline
+write-host $NOTE    -foreground YELLOW    # [15]
+
+
+<# ============ WORK NOTES / TO DO NEXT =========================
+
+IF ADMIN >>
+	> Modify script to pull department OU
+
+IF Manager or ADMIN >>
+	> Modify script for personal folder
+	> Modify script for elevating license privileges
+
+	IF ** IMPORTANT PERSON ** UPGRADE LICENSES TO :
+	INCLUDE IN REMOTE ACCESS LIST
+
+
+DISTRIBUTION LISTS
+	TITLE				DISTRIBUTION LIST
+	Animal Health			Animal Health
+	Cashier				Store Cashier list
+
+	Sporting Goods Specialist----------------------------------------
+	AD Distribution Group :	Sporting Goods
+	Licenses :		Microsoft Defender for Office 365 (Plan 1)
+				Office 365 F3 (Same as cashiers)
+	Microsoft.com :		Sporting Goods Department
+				External Send Override
+
+	Bookkeeper
+
+	Receiver
+
+	Warehouse
+
+	Clothing Manager
+
+	Assistant Manager
+
+	Store Manager
+
+        DOCUWARE?
+        LATITUDE?
+        GlobalProtect?
+        VOICEMAIL PIN
+ 
+        EAGLE RBS
+        BAT files?
+        MAP drive?
+        
+        Ship-from-store?
+
+================================================================== #>
+
+
+
+# OPEN USER CREATION SCRIPT -----------------------------------------------------------
+   invoke-expression -Command .\b_MURDOCHS_v21.03.ps1
