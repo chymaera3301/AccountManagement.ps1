@@ -1,5 +1,5 @@
 # %variable% = data from webhook fed into Power Automate, that inputs into the script
-# ******* replaces company info
+# ******* replaces OU
 
 param($empID, $userID, $NAMEfull, $eA10, $OU)
 $empID = %EmpID%
@@ -11,7 +11,7 @@ $OU =  Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distingu
 
 if( $OU -ne "CN=$NAMEfull,OU=Disabled Accounts,*"){
 Disable-ADAccount -Identity $userID
-Get-ADUser $userID | Move-ADObject -TargetPath "OU=Disabled Accounts,DC=corp,DC=*******,DC=com"}
+Get-ADUser $userID | Move-ADObject -TargetPath "*******"}
     else{}
     $ADgroups = Get-ADPrincipalGroupMembership -Identity $userID | where {$_.Name -ne "Domain Users"}
 if ($ADgroups -ne $null){
