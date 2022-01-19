@@ -1,5 +1,5 @@
 # %variable% = data from webhook fed into Power Automate, that inputs into the script
-# ******* replaces company info
+# ******* replaces OU
 
 param($Bkpr1, $Bkpr, $Dept, $EaglePW, $email, $empID, $empVLD, $JOBtitle, $Lat, $Manager, $mngrID, $mngrAD, $NAMEfirst, $NAMElast, $NAMEmiddle, $NAMEfull, $Office, $OUa, $OU, $Path, $PWord1, $PWord, $userID, $City, $Country, $State, $Street, $StrMgr, $Zip, $POS, $3cx)   
     $Bkpr = (Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%Office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ";"
@@ -32,7 +32,7 @@ param($Bkpr1, $Bkpr, $Dept, $EaglePW, $email, $empID, $empVLD, $JOBtitle, $Lat, 
             elseIF($Dept -eq '*******.com'){'eCommerce'}
             else{$Dept}
     $OU = IF($Office -eq 'Admin'){"OU=$OUa,OU=Admin"}else{"OU=$Office"}
-    $Path = "OU=Users,$OU,OU=Locations,DC=corp,DC=*******,DC=com"
+    $Path = "*******"
     $PWord1 = Invoke-WebRequest -Method get -Uri 'https://dinopass.com/password/strong' | Select-Object -Expand Content
     $PWord = "$PWord1@1"
     $userID = "%userID%"
