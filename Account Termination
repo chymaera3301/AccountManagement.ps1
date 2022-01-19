@@ -1,0 +1,20 @@
+# %variable% = data from webhook fed into Power Automate, that inputs into the script
+# ******* replaces company info
+
+param($empID, $userID, $NAMEfull, $eA10, $OU)
+$empID = %EmpID%
+$userID = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SamAccountName
+$NAMEfull = Get-ADUser -Filter {SamAccountName -eq $userID} | Select-Object -ExpandProperty Name
+$eA10 = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
+$jobTitle = Get-ADUser $userID -Properties * | Select-Object -expandProperty title
+$OU =  Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distinguishedName
+
+if( $OU -ne "CN=$NAMEfull,OU=Disabled Accounts,*"){
+Disable-ADAccount -Identity $userID
+Get-ADUser $userID | Move-ADObject -TargetPath "OU=Disabled Accounts,DC=corp,DC=*******,DC=com"}
+    else{}
+    $ADgroups = Get-ADPrincipalGroupMembership -Identity $userID | where {$_.Name -ne "Domain Users"}
+if ($ADgroups -ne $null){
+    Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $ADgroups -Confirm:$false}
+$eA10 | Out-File -FilePath C:\Apps\EagleID.txt
+$jobTitle | Out-File -FilePath C:\Apps\Title.txt
