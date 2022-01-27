@@ -25,7 +25,7 @@ param($Bkpr, $Dept, $DOH, $EaglePW, $email, $empID, $empVLD, $JOBtitle, $mngrID,
             elseIF($Dept -eq 'Information Technology'){'Information Systems'}
             elseIF($Dept -eq '*******.com'){'eCommerce'}
             else{$Dept}
-    $OU = IF($Office -eq 'Admin'){"*******$OUa*******"}else{"*******"}
+    $OU = IF($Office -eq 'Admin'){"***$OUa***"}else{"***$Office"}
     $PWord = ((Invoke-WebRequest -Method get -Uri 'https://dinopass.com/password/strong' | Select-Object -Expand Content),'1') -join '@' #"tinyF@rm$EaglePW"
     $userID = "%userID%"
     $City = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty l
