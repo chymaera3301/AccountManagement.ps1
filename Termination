@@ -1,22 +1,19 @@
 # %variable% = data from webhook fed into Power Automate, that inputs into the script
 # ******* replaces sensitive information
 
-param($Date, $empID, $userID, $eA10, $Groups, $NAMEfull, $OU)
-    $Date = Get-Date -Format 'yyyy-MM-dd'
-    $empID = "%EmpID%"
-    $userID = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SamAccountName
+param($userID, $eA10, $Groups, $NAMEfull, $OU)
+    $userID = Get-ADUser -Filter {employeeID -eq "%EmpID%"} | Select-Object -ExpandProperty SamAccountName
         $eA10 = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
         $Groups = (Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
         $JOBtitle = Get-ADUser $userID -Properties * | Select-Object -expandProperty title
         $NAMEfull = Get-ADUser -Filter {SamAccountName -eq $userID} | Select-Object -ExpandProperty Name
         $OU =  Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distinguishedName    
-IF($OU -ne "CN=$NAMEfull,OU=Disabled Accounts,*"){
+IF($OU -ne "*******"){
     Disable-ADAccount -Identity $userID
     Get-ADUser $userID | Move-ADObject -TargetPath "*******"
     IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
-    Set-ADUser -Identity $userID -replace @{description="Terminated $Date"}
+    Set-ADUser -Identity $userID -replace @{description="Terminated %TerminationDate%"}
     Set-ADUser -Identity $userID -clear extensionAttribute10,facsimileTelephoneNumber,homePhone,ipPhone,telephoneNumber
 }else{}
-
 $eA10 | Out-File -FilePath C:\Apps\EagleID.txt
 $JOBtitle | Out-File -FilePath C:\Apps\Title.txt
