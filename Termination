@@ -13,7 +13,7 @@ param($Date,$empID, $userID, $eA10, $Groups, $NAMEfull, $OU)
 if( $OU -ne "*******"){
     Disable-ADAccount -Identity $userID
     Get-ADUser $userID | Move-ADObject -TargetPath '*******'
-    Remove-ADPrincipalGroupMembership -Identity AmorisMF -MemberOf $Groups -Confirm:$false
+    IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups}
     Set-ADUser -Identity $userID -replace @{description="Terminated $Date";facsimileTelephoneNumber='<not set>';homePhone='<not set>';ipPhone='<not set>';telephoneNumber='<not set>'}
     Set-ADUser -Identity $userID -remove @{extensionAttribute10="$eA10";facsimileTelephoneNumber='<not set>';homePhone='<not set>';ipPhone='<not set>';telephoneNumber='<not set>'}
 }else{}
