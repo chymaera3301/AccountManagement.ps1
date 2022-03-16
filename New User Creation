@@ -1,6 +1,3 @@
-# %variable% = data from webhook fed into Power Automate, that inputs into the script
-# ******* replaces OU and sensitive information
-
 param($Dept, $DOH, $EaglePW, $email, $empID, $empVLD, $JOBtitle, $mngrID, $mngrAD, $NAMEfirst, $NAMElast, $NAMEmiddle, $NAMEfull, $Office, $OUa, $OU, $PWord, $userID, $City, $Country, $Phone, $State, $Street, $Zip, $DC, $Lat, $POS, $3cx)   
     $Dept = "%DEPT%"
     $DOH = "%DateOfHire%"
