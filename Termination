@@ -1,6 +1,3 @@
-# %variable% = data from webhook fed into Power Automate, that inputs into the script
-# ******* replaces sensitive information
-
 param($userID, $eA10, $Groups, $NAMEfull, $OU)
     $userID = Get-ADUser -Filter {employeeID -eq "%EmpID%"} | Select-Object -ExpandProperty SamAccountName
         $eA10 = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
