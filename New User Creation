@@ -24,7 +24,7 @@ param($Dept, $DOH, $EaglePW, $email, $empID, $empVLD, $JOBtitle, $mngrID, $mngrA
             elseIF($Dept -eq '*******'){'*******'}
             elseIF($Dept -eq '*******'){'*******'}
             else{$Dept}
-    $OU = IF($Office -eq '*******'){"*******"}
+    $OU = IF($Office -eq '*******'){"*******"}else{"*******$Office"}
     $PWord = "*******"
     $userID = "%userID%"
         $City = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty l
