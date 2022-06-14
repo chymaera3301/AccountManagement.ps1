@@ -1,4 +1,4 @@
-param($userID, $eA10, $Groups, $NAMEfull, $OU)
+param($empID, $userID, $eA10, $Groups, $NAMEfull, $OU)
     $userID = Get-ADUser -Filter {employeeID -eq "%EmpID%"} | Select-Object -ExpandProperty SamAccountName
         $eA10 = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
         $Groups = (Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
@@ -8,9 +8,15 @@ param($userID, $eA10, $Groups, $NAMEfull, $OU)
 IF($OU -ne "*******"){
     Disable-ADAccount -Identity $userID
     Get-ADUser $userID | Move-ADObject -TargetPath "*******"
-    IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
-    Set-ADUser -Identity $userID -replace @{description="Terminated %TerminationDate%"}
-    Set-ADUser -Identity $userID -clear extensionAttribute10,facsimileTelephoneNumber,homePhone,ipPhone,telephoneNumber
 }else{}
+IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
+Set-ADUser -Identity $userID -clear facsimileTelephoneNumber,homePhone,ipPhone,telephoneNumber,initials
+
 $eA10 | Out-File -FilePath C:\Apps\EagleID.txt
 $JOBtitle | Out-File -FilePath C:\Apps\Title.txt
+
+#Used in a different segment within PAD (Power Automate Desktop)
+$userID = Get-ADUser -Filter {employeeID -eq "%EmpID%"} | Select-Object -ExpandProperty SamAccountName
+$Date = '%TerminationDate%' -split 'T00:00:00'
+	Set-ADUser $userID -Clear extensionAttribute10
+	Set-ADuser $userID -Description "Terminated $Date"
