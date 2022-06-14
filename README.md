@@ -9,3 +9,6 @@ Scripts are being with Power Automate, using both Web and Desktop flows <br/>
 >>>  -2nd email creates a ticket to add access that couldn't be automated based on our lack of access to some applications <br/>
 
 Sensative information has been swapped out with *******
+
+# PAW = Power Automate Web
+# PAD = Power Automate Desktop
