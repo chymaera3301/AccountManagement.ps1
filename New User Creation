@@ -1,3 +1,5 @@
+#Used to create new accounts or re-enables accounts based on request coming from MS Forms and/or Webhooks
+
 param($Dept, $OUa, $empID, $email, $NAMEfirst, $NAMElast,$userID, $eA10, $JOBtitleO, $OfficeO, $JOBtitle, $mngrID, $City, $Country, $mngrAD, $mngrOU, $State, $Street, $Zip, $Office, $DC, $Lat, $OU, $Phone, $POS, $StoreID)    
     $Dept = "%DEPT%"
         $OUa=IF($Dept -eq *******){*******}
