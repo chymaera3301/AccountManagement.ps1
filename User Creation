@@ -99,7 +99,7 @@ IF($userIDscrb.length -gt 20){
     $HR = $null}
 
 #IF account is disabled enable update SAMAccount if needed, else create a new account
-$PWord = "$eA10@Farm-$storeID"
+$PWord = "*******"
 IF($null -ne $empVLD){
     $userID1 = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SAMAccountName
     IF($userID -ne $userID1){
