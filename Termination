@@ -5,7 +5,7 @@ param($empID, $userID, $eA10, $Groups, $NAMEfull, $OU)
         $JOBtitle = Get-ADUser $userID -Properties * | Select-Object -expandProperty title
         $NAMEfull = Get-ADUser -Filter {SamAccountName -eq $userID} | Select-Object -ExpandProperty Name
         $OU =  Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distinguishedName    
-IF($OU -ne "*******"){
+IF($OU -ne "$NAMEfull*******"){
     Disable-ADAccount -Identity $userID
     Get-ADUser $userID | Move-ADObject -TargetPath "*******"
 }else{}
