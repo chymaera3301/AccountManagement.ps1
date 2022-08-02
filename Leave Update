@@ -1,5 +1,3 @@
-#Starts from a MS Form that feeds into PAW the PAD
-
 param($empID, $userID, $leaveStatus, $time)
     $empID = "%empID%"
         $userID = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SamAccountName
