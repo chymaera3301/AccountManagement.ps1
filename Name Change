@@ -1,29 +1,28 @@
-param($EaglePW, $emailN, $userIDscrb, $EmpID, $eA10, $NAMEfirstO, $NAMElastO, $Office, $3cx, $OU, $userIDo, $NAMEdisplayN, $NAMEfirstN, $NAMElastN, $NAMEmiddleN)
-    $EaglePW = Get-Random -Minimum 1000 -Maximum 9999
-    $emailN = "%email%"
-        $userIDscrb = [string]$emailN.Split('@')[0..($emailN.Split('@').count-2)]
+param($email, $userIDscrb, $EmpID, $eA10, $NAMEfirstO, $NAMElastO, $Office, $3cx, $OU, $userIDo, $NAMEdisplay, $NAMEfirst, $NAMElast, $NAMEmiddle)
+    $email = "%email%"
+        $userIDscrb = [string]$email.Split('@')[0..($email.Split('@').count-2)]
     $EmpID = "%EmpID%"
         $eA10 = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
         $Office = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty office
             $3cx = IF($Office -eq 'Admin'){'Update name attached to extension (3cx and Confluence - Admin Phone Extension)'}else{$null}
         $OU = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
         $userIDo = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SamAccountName
-    $NAMEdisplayN = "%NAMEfirst% %NAMElast%"
-    $NAMEfirstN = "%NAMEfirst%"
-    $NAMElastN = "%NAMElast%"
-    $NAMEmiddleN = "%NAMEmiddle%"
-    $NAMEfullN = "%NAMEfirst% %NAMEmiddle% %NAMElast%"
+    $NAMEdisplay = "%NAMEfirst% %NAMElast%"
+    $NAMEfirst = "%NAMEfirst%"
+    $NAMElast = "%NAMElast%"
+    $NAMEmiddle = "%NAMEmiddle%"
+    $NAMEfull = IF($null -eq $NAMEmiddle){"$NAMEfirst $NAMElast"}else{"$NAMEfirst $NAMEmiddle $NAMElast"}
 
 #UserID length test
-$NAMEfirstScrb = $NAMEfirstN -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-$NAMElastScrb = $NAMElastN -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+$NAMEfirstScrb = $NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+$NAMElastScrb = $NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
 $NAMEf = $NAMEfirstScrb[0]
     $userIDb =  "$NAMEf.$NAMElastScrb"
     $userIDc = "$NAMEf$NAMEmiddle.$NAMElastScrb"
     IF($userIDscrb.length -gt 20){
-            $userIDtb = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDb*******"} | Select-Object -ExpandProperty Name
+            $userIDtb = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDb@*******.com"} | Select-Object -ExpandProperty Name
         IF($null -ne $userIDtb -and $userIDb.length -gt 20){
-                $userIDtc = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDc*******"} | Select-Object -ExpandProperty Name
+                $userIDtc = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDc@*******.com"} | Select-Object -ExpandProperty Name
             IF($null -eq $userIDtc -and $userIDc.length -gt 20){
                 $userID = $userIDc
                 $HR = "HR provided UserID exceeded 20 characters, contact HR to have UserID and Email updated to $userID"}
@@ -35,18 +34,17 @@ $NAMEf = $NAMEfirstScrb[0]
         $HR = $null}
 
 #Changing name
-    Rename-ADObject -Identity "$OU" -NewName "$NAMEfullN"
-Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -SamAccountName $userIDn -UserPrincipalName $emailN
-    Set-ADUser -Identity $userIDn -EmailAddress $emailN
-    Set-ADUser -Identity $userIDn -remove @{ProxyAddresses="SMTP:$userIDo*******"}
-    Set-ADUser -Identity $userIDn -add @{ProxyAddresses="SMTP:$emailN,smtp:$userIDo*******" -split ","}
-    Set-ADUser -Identity $userIDn -replace @{initials=$eA10;middleName=$NAMEmiddleN}
+    Rename-ADObject -Identity $OU -NewName "$NAMEfull"
+Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -SamAccountName $userID -UserPrincipalName $email
+    Set-ADUser -Identity $userID -EmailAddress $email
+    Set-ADUser -Identity $userID -remove @{ProxyAddresses="SMTP:$userIDo@*******.com"}
+    Set-ADUser -Identity $userID -add @{ProxyAddresses="SMTP:$email,smtp:$userIDo@*******.com" -split ","}
+    Set-ADUser -Identity $userID -replace @{initials=$eA10;middleName=$NAMEmiddle}
 
 #Creating txt files for Power Automate to read
 $3cx | Out-File -FilePath C:\Apps\NC\AR3cx.txt
 $eA10 | Out-File -FilePath C:\Apps\NC\eA10.txt
-$EaglePW | Out-File -FilePath C:\Apps\EaglePW.txt
 $HR | Out-File -FilePath C:\Apps\NC\HR.txt
 $Office | Out-File -FilePath C:\Apps\NC\Office.txt
-$userIDn | Out-File -FilePath C:\Apps\NC\userIDn.txt
+$userID | Out-File -FilePath C:\Apps\NC\userIDn.txt
 $userIDo | Out-File -FilePath C:\Apps\NC\userIDo.txt
