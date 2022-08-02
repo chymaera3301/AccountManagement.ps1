@@ -1,14 +1,15 @@
 Scripts are being with Power Automate, using both Web and Desktop flows <br/>
->>> Power Automate configuration not available <br/>
 
-  >"%*%" are used as variables that Power Automate feeds into the Powershell script <br/>
+>The Web flow is started when a webhook is received from an HR service, containing JSON<br/>
+>>-JSON is then parsed and variables created in PAW*<br/>
+>>-Data is then sent to PAD* awhere Powershell and Desktop Recordings are utilized<br/>
+>>-Data from PAD* is then sent back to PAW*<br/>
+>>>-Sharepoint lists are then updated for tracking<br/>
+-Emails sent out to those in management roles to account information<br/>
+-Additional Email sent to Account Management to add access that has yet to be automated<br/>
 
-  >The Web flow is started when a webhook or MS Form request is received<br/>
->> -Which starts the desktop flow, after creating a few accounts it will send the information back to the Web flow <br/>
->> -Web flow sends one email with account information to managers and needed HR reps <br/>
->>>  -2nd email creates a ticket to add access that couldn't be automated based on our lack of access to some applications <br/>
-
-Sensative information has been swapped out with *******
-
-# PAW = Power Automate Web
-# PAD = Power Automate Desktop
+PAW = Power Automate Web<br/>
+>-Power Automate configuration not available<br/>
+<p>PAD = Power Automate Desktop<br/>
+Sensative information has been swapped out with *******<br/>
+"%variable%" is used as variables that Power Automate feeds into the Powershell script <br/><p/>
