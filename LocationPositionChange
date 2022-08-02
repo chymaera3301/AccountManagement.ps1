@@ -1,29 +1,26 @@
-param($Dept, $OUa, $empID, $email, $NAMEfirst, $NAMElast,$userID, $eA10, $JOBtitleO, $OfficeO, $JOBtitle, $mngrID, $City, $Country, $mngrAD, $mngrOU, $State, $Street, $Zip, $Office, $DC, $Lat, $OU, $Phone, $POS, $StoreID)    
+param($ChangeType, $Dept, $OUa, $email, $empID, $eA10, $JOBtitleO, $OfficeO, $JOBtitle, $mngrID, $City, $Country, $mngrAD, $mngrOU, $Phone, $State, $Street, $Zip, $Office, $DC, $Lat, $OU, $3CX, $POS, $StoreID, $userID, $Groups)
+    $ChangeType = "%ChangeType%"
     $Dept = "%DEPT%"
-        $OUa=IF($Dept -eq *******){*******}
-            elseIF($Dept -eq *******){*******}
-            elseIF($Dept -eq *******){*******}
-            else{$Dept}
+        $OUa=IF($Dept -eq '*******'){'*******'}
+            elseIF($Dept -eq '*******'){'*******'}
+            elseIF($Dept -eq '*******'){'*******'}
+            else{"%DEPT%"}
+    $email = "%Email%"
     $empID = "%empID%"
-        $email = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty UserPrincipalName
-        $NAMEfirst = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty givenName
-        $NAMElast = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty surname
-        $userID = Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SAMAccountName
-            $eA10 = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
-            $Groups = (Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
-                IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
-            $JOBtitleO  = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty
-            $OfficeO = Get-ADUser $userID -Properties * | Select-Object -ExpandPropert physicalDeliveryOfficeName
+        $eA10 = Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty extensionAttribute10
+        $JOBtitleO  = Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty title
+        $OfficeO = Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandPropert physicalDeliveryOfficeName
     $JOBtitle = "%JOBtitle%"
-        $mngrID = Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq "%Office%" -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
-            $City = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty l
-            $Country = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty Country
-            $mngrAD = Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty SamAccountName
-            $mngrOU = Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty distinguishedName
-            $State = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty st
-                $POS = IF($State -eq 'MT'){'POSMT'}else{'POS'}
-            $Street = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty streetAddress
-            $Zip = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty postalCode
+    $mngrID = "%mngrID%"
+        $Country = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty Country
+        $City = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty l
+        $mngrAD = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty SamAccountName
+        $mngrOU = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty distinguishedName
+        $Phone = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty extensionAttribute12
+        $State = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty st
+            $POS = IF($State -eq 'MT'){'POSMT'}else{'POS'}
+        $Street = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty streetAddress
+        $Zip = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty postalCode
     $Office = IF($Dept -eq 'Finance'){'Admin'}
                 elseIF($Dept -eq 'Human Resources'){'Admin'}
                 elseIF($Dept -eq 'Information Technology'){'Admin'}
@@ -35,28 +32,19 @@ param($Dept, $OUa, $empID, $email, $NAMEfirst, $NAMElast,$userID, $eA10, $JOBtit
                 elseIF($Dept -eq 'Purchasing Softside'){'Admin'}
                 else{"%Office%"}
         $DC = IF($Office -eq 'Nothern DC'){'NDC'}elseIF($Office -eq 'Southern DC'){'SDC'}
-        $Lat = IF($Office -like "*thern DC"){'Create Latitude/PathGuide account'}else{$null}
-        $OU = IF($Office -eq 'Admin'){"$OUa*******"}else{"$Office*******"}
-        $Phone = IF($Office -ne 'Admin'){Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty homePhone}else{$null}
-    $StoreID = %StoreID%
-#Location Chagne
-IF($OfficeO -ne $Office -AND $JOBtitleO -eq $JOBtitle){
-    Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
-    Set-ADUser -Identity $userID -replace @{extensionAttribute5=$Office;extensionAttribute6=$mngrAD;extensionAttribute12=$Phone;homePhone=$Phone;manager=$mngrOU;postalCode=$Zip;l=$City;physicalDeliveryOfficeName=$Office;st=$state;streetAddress=$Street;telephoneNumber=$Phone}
-        $LP1 = "Location Change"
-        $LP2 = "Eagle access needs to be changed, reflect new location; $Office ($StoreID)"
-#Position Change
-}elseIF($JOBtitleO -ne $JOBtitle -AND $OfficeO -eq $Office){
-    Set-ADUser -Identity $userID -replace @{department=$Dept;extensionAttribute4=$JOBtitle;title=$JOBtitle}
-        $LP1 = "Title Change"
-        $LP2 = "Eagle access needs to be changed, reflect new position; $Dept / $JOBtitle"
-#Location and Position Change
-}elseIF($JOBtitleO -ne $JOBtitle -AND $OfficeO -ne $Office){
+        $Lat = IF($Office -like "*thern DC"){'Create Latitude/PathGuide account'}else{'N/A'}
+        $OU = IF($Office -eq '*******'){"$OUa*******"}else{"$Office*******"}
+        $3CX = IF($Office -eq 'Admin'){'Create/Update extension via 3CX, update Confluence (Admin Phone Extension)'}else{'N/A'}
+        $POS = IF($State -eq 'MT'){'POSMT'}else{'POS'}
+    $StoreID = "%StoreID%"
+    $userID = "%userID%"
+        $Groups = (Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
+                IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
+
+#Update Profile
     Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
     Set-ADUser -Identity $userID -replace @{department=$Dept;extensionAttribute4=$JOBtitle;extensionAttribute5=$Office;extensionAttribute6=$mngrAD;extensionAttribute12=$Phone;homePhone=$Phone;manager=$mngrOU;postalCode=$Zip;l=$City;physicalDeliveryOfficeName=$Office;st=$state;streetAddress=$Street;telephoneNumber=$Phone;title=$JOBtitle}
-        $LP1 = "Title and Location Change"
-        $LP2 = "Eagle access needs to be changed, reflect new position and location; $Dept / $JOBtitle @ $Office ($StoreID)"
-}
+
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
 IF($JOBtitle -eq 'Accounts Payable Specialist'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Accounting','Accounting Procedures','finance-confluence-users','Remote Desktop Users'
     $Egl='AP / POSMT'
@@ -68,7 +56,7 @@ elseIF($JOBtitle -eq 'Assistant Clothing Manager'){Add-ADPrincipalGroupMembershi
     $Egl="BA / MPOS / PIP / $POS / SO"
     $MS='N/A'}
 elseIF($JOBtitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office Store Share"
-    $Egl="BA / EODREP / LAYAWAY / MPOS / PLIV / $POS / TRAN"
+    $Egl="BA / LAYAWAY / MPOS / PLIV / $POS / TRAN"
     $MS='N/A'}
 elseIF($JOBtitle -eq 'Assistant Sporting Goods Mgr'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office Store Share",'Sporting Goods','SportingGoodsChange'
     $Egl="IMU / LAYAWAY / MPOS / $POS / REC / SO / TRAN"
@@ -76,8 +64,14 @@ elseIF($JOBtitle -eq 'Assistant Sporting Goods Mgr'){Add-ADPrincipalGroupMembers
 elseIF($JOBtitle -eq 'Assistant Store Manager'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office Store Share"
     $Egl="BA / EODREP / LAYAWAY / MPOS / PLIV / $POS / TRAN"
     $MS='N/A'}
+elseIF($JOBtitle -eq 'ATF Compliance Assistant'){Add-ADPrincipalGroupMembership $userID -MemberOf 'ATF Compliance','Exclaimer with mobile','Remote Desktop Users','Sporting Goods'
+    $Egl="COMPASS / MPOS / PO / $POS"
+    $MS='ATF Compliance, FFL, SGD'}
 elseIF($JOBtitle -eq 'ATF Compliance Auditor'){Add-ADPrincipalGroupMembership $userID -MemberOf 'ATF Compliance','Exclaimer with mobile','Remote Desktop Users','Sporting Goods'
     $Egl='Store(s): ALL  -  CH STORE / IMU / LAYAWAY / MPOS / POSMT / RDS / REC / SO / TRAN'
+    $MS='ATF Compliance, FFL, SGD'}
+elseIF($JOBtitle -eq 'ATF Compliance Officer'){Add-ADPrincipalGroupMembership $userID -MemberOf 'ATF Compliance','Exclaimer with mobile','Remote Desktop Users','Sporting Goods'
+    $Egl="COMPASS / MPOS / PO / $POS"
     $MS='ATF Compliance, FFL, SGD'}
 elseIF($JOBtitle -eq 'Bookkeeper'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office Store Share",'HR Benefits'
     $Egl="AR / BA / EODROP / FDELETE / IMU / MPOS / PIP / PO / $POS"
@@ -86,7 +80,7 @@ elseIF($JOBtitle -eq 'Boot Specialist'){
     $Egl="$POS"
     $MS='N/A'}
 elseIF($JOBtitle -eq 'Business Intelligence'){Add-ADPrincipalGroupMembership $userID -MemberOf 'ecomm-confluence-users','IT HelpDesk','it-confluence-users','RDS1 Remote Desktop Services Access','Remote Desktop Users','TFS Project Collection Administrators'
-    Set-ADUser -Identity $userID -clear extensionAttribute10 
+    Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
     $Egl='n/a (Remove Eagle account)'
     $MS='Information Systems Department'}
 elseIF($JOBtitle -eq 'Buyer'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Purchasing','Purchasing Department','purchasing-confluence-administrator','purchasing-confluence-users','Remote Desktop Users'
@@ -126,11 +120,11 @@ elseIF($JOBtitle -eq 'Head Cashier'){
     $Egl="MPOS / $POS"
     $MS="$Office Cashiers (Not all stores have a Cashiers group)"}
 elseIF($JOBtitle -eq 'HR Recruitment Specialist'){Add-ADPrincipalGroupMembership $userID -MemberOf 'hr-confluence-users','Human Resources','Remote Desktop Users'
-    Set-ADUser -Identity $userID -clear extensionAttribute10 
+    Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
     $Egl='n/a (Remove Eagle account)'
     $MS='alerts-hr  / HR Announcements  / Human Resources'}
 elseIF($JOBtitle -eq 'HR Recruitment Specialist'){Add-ADPrincipalGroupMembership $userID -MemberOf 'hr-confluence-users','Human Resources','Remote Desktop Users'
-    Set-ADUser -Identity $userID -clear extensionAttribute10 
+    Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
     $Egl='n/a (Remove Eagle account)'
     $MS='alerts-hr  / HR Announcements  / Human Resources'}
 elseIF($JOBtitle -eq 'IT Support Analyst'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Confluence-ADMINs','Docuware Global Group','ESXi Read Only','Help Desk','Information Technologies','InformationTechnologyChange','IT HelpDesk','it-confluence-admin','it-confluence-users','JIRA Service Desk Test','RDS1 Remote Desktop Services Access','Remote Desktop Users','Unlock AD Accounts'
@@ -155,7 +149,7 @@ elseIF($JOBtitle -eq 'Merchandising Specialist'){Add-ADPrincipalGroupMembership 
     $Egl='POSMT'
     $MS='Marketing Department / Product & Sales Team'}
 elseIF($JOBtitle -eq 'Paralegal'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Accounting','AccountingChange','Executive','finance-confluence-users','Remote Desktop Users'
-    Set-ADUser -Identity $userID -clear extensionAttribute10 
+    Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
     $Egl='n/a (Remove Eagle account)'
     $MS='CCPA Compliance, Finance, Legal, Legal/Contract Projects'}
 elseIF($JOBtitle -eq 'Purchasing Specialist'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Purchasing','Purchasing Department','Purchasing Reports','purchasing-confluence-administrator','purchasing-confluence-users','Remote Desktop Users'
@@ -165,11 +159,18 @@ elseIF($JOBtitle -eq 'Receiving Specialist'){Add-ADPrincipalGroupMembership $use
     $Egl="IMU / PIP / $POS / REC / TRAN"
     $MS='N/A'}
 elseIF($JOBtitle -eq 'Regional Clothing Manager'){Add-ADPrincipalGroupMembership $userID -MemberOf 'xclaimer with mobile','operations-confluence-users','Remote Desktop Users'
-    $Egl='Access varies based on what areas they are assigned'
+    $Egl="Store(s): ALL  -  ADD / BA / COMPASS / IMU / MPOS / PO / $POS / PROMO / RIS / RIV / SO / TRAN"
     $MS='Regional Clothing Managers'}
+elseIF($JOBtitle -eq 'Regional Manager'){Add-ADPrincipalGroupMembership $userID -MemberOf 'DepartmentHeadsChange','leadership-confluence-users','LeadershipShareChange','OperationsChange','operations-confluence-users','Remote Desktop Users','Sporting Goods'
+    $Egl="Store(s): ALL  -  ADD / BA / COMPASS / IMU / MPOS / PO / $POS / PROMO / RIS / RIV / SO / TRAN"
+    $MS="Campaigns Planning, CIRT - Critical Incident Response, DC Phone List, Facilities and Maintenance/items, FFL-Management-RPs, Frequent Buyer Programs (Pet & Feed), Improve Company Communications, Inventory, Inventory Travels Leads, Leadership Team, Managers and Feed Buyers, Managers and Pet Department, ERP Council, New RHS Properties, New Store/Acuisition, Operations, Price Changes, Regional & HR, REgional CM, Store Remodel Team, Tool Managers, Trade Show Team"}
 elseIF($JOBtitle -eq 'Replenishment Analyst'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Purchasing','Purchasing Department','Purchasing Reports','purchasing-confluence-administrator','purchasing-confluence-users','Remote Desktop Users'
     $Egl='Store(s): 1, 9, 11  -  IMU / POS / PUR'
     $MS='Purchasing  / Purchasing Department'}
+elseIF($JOBtitle -eq 'Retail Construction & Facilities Manager'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Exclaimer with mobile','OperationsChange','operations-confluence-users','Remote Desktop Users'
+    Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
+    $Egl='n/a (Remove Eagle account)'
+    $MS="BOPIS, Budget 2021, Budget 2022, CIRT - Critical Incident Response, Facilities and Maintenance/items, Home Office Remodel, New RHS Properties, New Store/Acquisition, Operations, Store Remodel Team"}
 elseIF($JOBtitle -eq 'Senior Accountant'){Add-ADPrincipalGroupMembership $userID -MemberOf 'Accounting','Accounting Procedures','Administration','finance-confluence-admin','General Ledger','Inventory','InventoryChange','Remote Desktop Users'
     $Egl="Store(s): ALL  -  ADMIN SO / CH STORE / COMPASS / MPOS / POS / REV TRAN / TRANCOM ||| Store(s): 1  -  GL / IMU CODE / MVR"
     $MS='Finance Department'}
@@ -200,11 +201,12 @@ elseIF($JOBtitle -eq 'Yard Specialist'){
 else{
     $Egl='Position not listed in script / compare with similar title and/or reach out to Manager'
     $MS='TBD'}
+
 #Email list
-        $Amgr = (Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%Office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $Bkpr = (Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%Office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $Cmgr = (Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%Office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $SGDm = (Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%Office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $Amgr = (Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $Bkpr = (Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $Cmgr = (Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $SGDm = (Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
         $Smgr = Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
     IF($Office -ne 'Admin'){
             $eMGR = IF($Dept -eq 'Clothing'){"$Amgr;$Bkpr;$Cmgr;$Smgr"}
@@ -215,10 +217,9 @@ else{
 $eA10 | Out-File -FilePath C:\Apps\LPC\eA10.txt
 $Egl | Out-File -FilePath C:\Apps\LPC\ARegl.txt
 $eMGR | Out-File -FilePath C:\Apps\LPC\eMGR.txt
+$JOBtitleO | Out-File -FilePath C:\Apps\LPC\JOBtitleO.txt
 $Lat | Out-File -FilePath C:\Apps\LPC\ARlat.txt
-$LP1 | Out-File -FilePath C:\Apps\LPC\LP1.txt
-$LP2 | Out-File -FilePath C:\Apps\LPC\LP2.txt
 $MS | Out-File -FilePath C:\Apps\LPC\ARms.txt
-$NAMEfirst | Out-File -FilePath C:\Apps\LPC\NAMEfirst.txt
-$NAMElast | Out-File -FilePath C:\Apps\LPC\NAMElast.txt
-$userID | Out-File -FilePath C:\Apps\LPC\ADID.txt
+$Office | Out-File -FilePath C:\Apps\LPC\Office.txt
+$OfficeO | Out-File -FilePath C:\Apps\LPC\OfficeO.txt
+$3CX | Out-File -FilePath C:\Apps\LPC\3CX.txt
