@@ -1,0 +1,173 @@
+#JSON Example
+{
+    "birthDate": "2045-01-31",
+    "employeeId": "654321",
+    "firstName": "NAMEfirst",
+    "lastName": "NAMElast",
+    "middleName": "M",
+    "preferredName": "NAMEpref",
+    "priorLastName": "NAMElastPrior",
+    "departmentPosition": {
+      "changeReason": "DeptChangeReason",
+      "costCenter1": "1",
+      "costCenter2": "001",
+      "costCenter3": "001",
+      "effectiveDate": "2045-01-31",
+      "equalEmploymentOpportunityClass": "1",
+      "jobTitle": "Title of Job",
+      "positionCode": "12345",
+      "supervisorCompanyNumber": "1234",
+      "supervisorEmployeeId": "123456"
+    },
+    "status": {
+      "changeReason": "StatusChangeReason",
+      "effectiveDate": "2045-01-31",
+      "hireDate": "2017-11-20",
+      "terminationDate": "2021-08-24"
+    },
+    "workAddress": {
+      "location": "Location",
+      "address1": "6426 Drury Lane",
+      "address2": "Unit 17",
+      "city": "Muffinville",
+      "emailAddress": "F.NAMElast12@email.com",
+      "state": "State",
+      "postalCode": "12345"
+    }
+}
+
+#JSON Schema
+  {
+    "type": "object",
+    "properties": {
+        "birthDate": {
+            "type": "string"
+        },
+        "employeeId": {
+            "type": "string"
+        },
+        "firstName": {
+            "type": "string"
+        },
+        "lastName": {
+            "type": "string"
+        },
+        "middleName": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "preferredName": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "priorLastName": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "departmentPosition": {
+            "type": "object",
+            "properties": {
+                "changeReason": {
+                    "type": "string"
+                },
+                "costCenter1": {
+                    "type": "string"
+                },
+                "costCenter2": {
+                    "type": "string"
+                },
+                "costCenter3": {
+                    "type": "string"
+                },
+                "effectiveDate": {
+                    "type": "string"
+                },
+                "equalEmploymentOpportunityClass": {
+                    "type": "string"
+                },
+                "jobTitle": {
+                    "type": "string"
+                },
+                "positionCode": {
+                    "type": "string"
+                },
+                "supervisorCompanyNumber": {
+                    "type": "string"
+                },
+                "supervisorEmployeeId": {
+                    "type": "string"
+                },
+                "workersCompensation": {
+                    "type": "string"
+                }
+            }
+        },
+        "status": {
+            "type": "object",
+            "properties": {
+                "changeReason": {
+                    "type": "string"
+                },
+                "effectiveDate": {
+                    "type": "string"
+                },
+                "hireDate": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "reHireDate": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "terminationDate": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            }
+        },
+        "workAddress": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string"
+                },
+                "address1": {
+                    "type": "string"
+                },
+                "address2": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "emailAddress": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "postalCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "companyName": {
+            "type": "string"
+        },
+        "companyFEIN": {
+            "type": "string"
+        }
+    }
+}
