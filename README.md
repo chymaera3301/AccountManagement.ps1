@@ -9,7 +9,7 @@ Scripts are being with Power Automate, using both Web and Desktop flows <br/>
 -Additional email sent to Account Management to add access that has yet to be automated<br/>
 
 PAW = Power Automate Web<br/>
+PAD = Power Automate Desktop<br/>
 >-Power Automate configuration not available<br/>
-<p>PAD = Power Automate Desktop<br/>
-Sensative information has been swapped out with *******<br/>
+<p>Sensative information has been swapped out with *******<br/>
 "%variable%" is used as variables that Power Automate feeds into the Powershell script <br/><p/>
