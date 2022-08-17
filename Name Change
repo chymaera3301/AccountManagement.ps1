@@ -20,9 +20,9 @@ $NAMEf = $NAMEfirstScrb[0]
     $userIDb =  "$NAMEf.$NAMElastScrb"
     $userIDc = "$NAMEf$NAMEmiddle.$NAMElastScrb"
     IF($userIDscrb.length -gt 20){
-            $userIDtb = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDb@*******.com"} | Select-Object -ExpandProperty Name
+            $userIDtb = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDb@*******"} | Select-Object -ExpandProperty Name
         IF($null -ne $userIDtb -and $userIDb.length -gt 20){
-                $userIDtc = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDc@*******.com"} | Select-Object -ExpandProperty Name
+                $userIDtc = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDc@*******"} | Select-Object -ExpandProperty Name
             IF($null -eq $userIDtc -and $userIDc.length -gt 20){
                 $userID = $userIDc
                 $HR = "HR provided UserID exceeded 20 characters, contact HR to have UserID and Email updated to $userID"}
@@ -37,8 +37,8 @@ $NAMEf = $NAMEfirstScrb[0]
     Rename-ADObject -Identity $OU -NewName "$NAMEfull"
 Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -SamAccountName $userID -UserPrincipalName $email
     Set-ADUser -Identity $userID -EmailAddress $email
-    Set-ADUser -Identity $userID -remove @{ProxyAddresses="SMTP:$userIDo@*******.com"}
-    Set-ADUser -Identity $userID -add @{ProxyAddresses="SMTP:$email,smtp:$userIDo@*******.com" -split ","}
+    Set-ADUser -Identity $userID -remove @{ProxyAddresses="SMTP:$userIDo@*******"}
+    Set-ADUser -Identity $userID -add @{ProxyAddresses="SMTP:$email,smtp:$userIDo@*******" -split ","}
     Set-ADUser -Identity $userID -replace @{initials=$eA10;middleName=$NAMEmiddle}
 
 #Creating txt files for Power Automate to read
