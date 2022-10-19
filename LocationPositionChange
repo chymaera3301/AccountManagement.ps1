@@ -42,77 +42,29 @@ param($ChangeType, $Dept, $OUa, $email, $empID, $eA10, $JOBtitleO, $OfficeO, $JO
                 IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
 
 #Update Profile
-    Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
-    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{department=$Dept;extensionAttribute4=$JOBtitle;extensionAttribute5=$Office;extensionAttribute6=$mngrAD;extensionAttribute12=$Phone;homePhone=$Phone;manager=$mngrOU;l=$City;physicalDeliveryOfficeName=$Office;st=$state;streetAddress=$Street;telephoneNumber=$Phone;title=$JOBtitle}
+Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
+Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
+    department=$Dept;`
+    extensionAttribute4=$JOBtitle;`
+    extensionAttribute5=$Office;`
+    extensionAttribute6=$mngrAD;`
+    extensionAttribute12=$Phone;`
+    homePhone=$Phone;`
+    manager=$mngrOU;`
+    l=$City;`
+    physicalDeliveryOfficeName=$Office;`
+    st=$state;`
+    streetAddress=$Street;`
+    telephoneNumber=$Phone;`
+    title=$JOBtitle}
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
-    #Back Office
     IF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office*******"
         $Egl="******* $POS"
         $MS='*******'}
     elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
         $Egl="******* $POS"
         $MS='*******'}
-#Frontline
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Home Office / Admin
-    #eCommerce
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
-        Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
-        $Egl='n/a (Remove Eagle account)'
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Finance
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
-        $Egl='*******'
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Human Resources
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        Set-ADUser -Identity $userID -clear 'extensionAttribute10,initials'.Split(',') 
-        $Egl='n/a (Remove Eagle account)'
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Information Technology
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
-        $Egl='Store(s): ALL - SYSTEM'
-        $MS="*******"}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Marketing
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl='*******'
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Operations
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Purchasing
-    elseIF($JOBtitle -eq 'Buyer'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
-        $Egl='*******'
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
-#Not Listed/New Title
     else{
         $Egl='Position not listed in script / compare with similar title and/or reach out to Manager'
         $MS='TBD'}
