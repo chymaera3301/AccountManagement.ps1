@@ -1,45 +1,77 @@
-param($email, $userIDscrb, $EmpID, $eA10, $NAMEfirstO, $NAMElastO, $Office, $3cx, $OU, $userIDo, $NAMEdisplay, $NAMEfirst, $NAMElast, $NAMEmiddle)
-    $email = "%email%"
-        $userIDscrb = [string]$email.Split('@')[0..($email.Split('@').count-2)]
-    $EmpID = "%EmpID%"
-        $eA10 = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
-        $Office = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty office
-            $3cx = IF($Office -eq 'Admin'){'Update name attached to extension (3cx and Confluence - Admin Phone Extension)'}else{$null}
-        $OU = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
-        $userIDo = Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SamAccountName
-    $NAMEdisplay = "%NAMEfirst% %NAMElast%"
-    $NAMEfirst = "%NAMEfirst%"
-    $NAMElast = "%NAMElast%"
-    $NAMEmiddle = "%NAMEmiddle%"
-    $NAMEfull = IF($null -eq $NAMEmiddle){"$NAMEfirst $NAMElast"}else{"$NAMEfirst $NAMEmiddle $NAMElast"}
+#Part one, changing only name not username
+
+param($empID,$OU,$NAMEdisplay,$NAMEfirst,$NAMElast,$NAMEmiddle,$pName,$prefName,$displayName,$NAMEfull)
+    $empID='%empID%'
+        $OU=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
+    $NAMEdisplay='%NAMEfirst% %NAMElast%'
+    $NAMEfirst='%NAMEfirst%'
+    $NAMElast='%NAMElast%'
+    $NAMEmiddle='%NAMEmiddle%'
+    $pName='%NAMEpref%'
+        $prefName=$pName.substring(0,1).toupper()+$pName.substring(1).tolower()
+        $displayName="$prefName $NAMElast"
+    $NAMEfull=IF($null -eq $NAMEmiddle){"$NAMEfirst $NAMElast"}else{"$NAMEfirst $NAMEmiddle $NAMElast"}
+
+Rename-ADObject -Identity $OU -NewName "$NAMEfull"
+Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
+    displayName=$displayName;`
+    givenName=$prefName;`
+    middleName=$NAMEmiddle`
+}
+
+
+
+#Part two, update username and set proxies
+
+param($email,$userID,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle)
+    $email='%email%'
+        $userIDa=[string]$email.Split('@')[0..($email.Split('@').count-2)]
+    $empID='%empID%'
+        $eA10=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
+        $Office=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty office
+            $3cx=IF($Office -eq 'Admin'){'Update name attached to extension (3cx and Confluence - Admin Phone Extension)'}else{$null}
+        $userIDo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SamAccountName
+    $NAMEfirst='%NAMEfirst%'
+    $NAMElast='%NAMElast%'
+    $NAMEmiddle='%NAMEmiddle%'
 
 #UserID length test
-$NAMEfirstScrb = $NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-$NAMElastScrb = $NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-$NAMEf = $NAMEfirstScrb[0]
-    $userIDb =  "$NAMEf.$NAMElastScrb"
-    $userIDc = "$NAMEf$NAMEmiddle.$NAMElastScrb"
-    IF($userIDscrb.length -gt 20){
-            $userIDtb = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDb@*******"} | Select-Object -ExpandProperty Name
-        IF($null -ne $userIDtb -and $userIDb.length -gt 20){
-                $userIDtc = Get-ADUser -Filter {proxyAddresses -like "SMTP:$userIDc@*******"} | Select-Object -ExpandProperty Name
-            IF($null -eq $userIDtc -and $userIDc.length -gt 20){
-                $userID = $userIDc
-                $HR = "HR provided UserID exceeded 20 characters, contact HR to have UserID and Email updated to $userID"}
+$NAMEfirstScrb=$NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+$NAMElastScrb=$NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+IF($email -eq '' -or $userIDa -eq ''){
+    $userIDa="$NAMEfirstScrb.$NAMElastScrb"}
+        $testA=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDa*"} | Select-Object -ExpandProperty Enabled
+$NAMEf=$NAMEfirstScrb[0]
+    $userIDb="$NAMEfirstScrb.$NAMEmiddle.$NAMElastScrb"
+        $testB=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDb*"} | Select-Object -ExpandProperty Enabled
+    $userIDc="$NAMEf.$NAMElastScrb"
+        $testC=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDc*"} | Select-Object -ExpandProperty Enabled
+    $userIDd="$NAMEf$NAMEmiddle.$NAMElastScrb"
+
+IF($testA -ne 'True' -AND $userIDa.length -gt 20){
+    IF($testB -ne 'True' -AND $userIDb.length -gt 20){
+        IF($testC -ne 'True' -AND $userIDc.length -gt 20){
+            IF($userIDd.length -gt 20){
+                $userID=$userIDd
+                $email="$userIDd*******"
+                $HR="Provided UserID exceeds 20 characters or in use, contact HR to have UserID and Email updated to $userID / $email"}
         }else{
-            $userID = $userIDb
-            $HR = "HR provided UserID exceeded 20 characters, contact HR to have UserID and Email updated to $userID"}
+            $userID=$userIDc
+            $email="$userIDc*******"
+            $HR="Provided UserID exceeds 20 characters or in use, contact HR to have UserID and Email updated to $userID / $email"}
     }else{
-        $userID = $userIDscrb
-        $HR = $null}
+        $userID=$userIDb
+        $email="$userIDb*******"
+        $HR="Provided UserID exceeds 20 characters or in use, contact HR to have UserID and Email updated to $userID / $email"}
+}else{
+    $userID=$userIDa
+    $email="$userIDa*******"
+    $HR=$null}
 
 #Changing name
-    Rename-ADObject -Identity $OU -NewName "$NAMEfull"
-Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -SamAccountName $userID -UserPrincipalName $email
-    Set-ADUser -Identity $userID -EmailAddress $email
-    Set-ADUser -Identity $userID -remove @{ProxyAddresses="SMTP:$userIDo@*******"}
-    Set-ADUser -Identity $userID -add @{ProxyAddresses="SMTP:$email,smtp:$userIDo@*******" -split ","}
-    Set-ADUser -Identity $userID -replace @{initials=$eA10;middleName=$NAMEmiddle}
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{mail=$email;sAMAccountName=$userID;userPrincipalName=$email}
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses="SMTP:$userIDo*******"}
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -add @{ProxyAddresses="SMTP:$email,smtp:$userIDo*******" -split ","}
 
 #Creating txt files for Power Automate to read
 $3cx | Out-File -FilePath C:\Apps\NC\AR3cx.txt
