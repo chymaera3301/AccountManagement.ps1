@@ -140,16 +140,12 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
     IF($null -ne $NAMEmiddle){Set-ADUser -Identity $userID -replace @{middleName=$NAMEmiddle}}
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
-    #Back Office
     IF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office*******"
-        $Egl="BA / MPOS / PIP / $POS / SO"
-        $MS='n/a'}
-    elseIF($JOBtitle -eq '*******'){
-        $Egl="$POS"
-        $MS='n/a'}
-    elseIF($JOBtitle -eq '*******'){
-        $Egl="$POS"
-        $MS='n/a'}
+        $Egl="******* $POS"
+        $MS='*******'}
+    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
+        $Egl="******* $POS"
+        $MS='*******'}
     else{
         $Egl='Position not listed in script / compare with similar title and/or reach out to Manager'
         $MS='TBD'}
