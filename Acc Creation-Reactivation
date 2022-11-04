@@ -1,31 +1,22 @@
-param($EaglePW,$cReason,$City,$Dept,$Office,$DC,$Lat,$Lat2,$3cx,$OUa,$OU,$DOB,$DOH,$email,$empID,$empVLD,$givenName,$NAMEfirst,$JOBtitle,$mngrID,$mngrAD,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
+param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$3cx,$OUa,$OU,$DOB,$DOH,$email,$empID,$empVLD,$givenName,$NAMEfirst,$JOBtitle,$mngrID,$mngrAD,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
     $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
-    $cReason='%changeReason%'
     $City='%city%'
+    $cReason='%changeReason%'
     $Dept='%dept%'
         $Office=IF($Dept -eq '*******'){'*******'}
                     elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
-                    elseIF($Dept -eq '*******'){'*******'}
                     elseIF('%Office%' -eq '*******'){'*******'}
                     else{'%Office%'}
-            $DC=IF($Office -eq '*******'){'*******'}elseIF($Office -eq '*******'){'*******'}
-            $Lat=IF($Office -like "*******"){"Create Latitude/PathGuide account, Password $EaglePW"}else{'N/A'}
-            $Lat2=IF($Office -like "*******"){'Latitude will be same as Eagle/POS, please reach out if unable to login.'}else{$null}
-            $3cx=IF($Office -eq '*******'){'Create extension via 3CX, update Confluence (Admin Phone Extension)'}else{'N/A'}
+            $DC=IF($Office -eq 'Nothern DC Butte'){'NDC'}elseIF($Office -eq 'Southern DC'){'SDC'}
+            $Lat=IF($Office -like "*thern DC"){"Create Latitude/PathGuide account, Password $EaglePW"}else{'N/A'}
+            $Lat2=IF($Office -like "*thern DC"){'Latitude will be same as Eagle/POS, please reach out if unable to login.'}else{$null}
+            $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension)`
+                                        IP phone = Extension`
+                                        extensionAttribute13 = Full number (DID)'}else{'N/A'}
         $OUa=IF($Dept -eq '*******'){'*******'}
                 elseIF($Dept -eq '*******'){'*******'}
-                elseIF($Dept -eq '*******'){'*******'}
-                elseIF($Dept -eq '*******'){'*******'}
-                elseIF($Dept -eq '*******'){'*******'}
-                elseIF($Dept -eq '*******'){'*******'}
                 else{$Dept}
-            $OU=IF($Office -eq '*******'){"$OUa*******"}else{"$Office*******"}
+            $OU=IF($Office -eq 'Admin'){"$OUa*******"}else{"$Office*******"}
     $DOB='%DOB%'
     $DOH='%DateOfHire%'
     $email='%email%'
@@ -113,7 +104,7 @@ IF($testA -ne 'True' -AND $userIDa.length -gt 20){
     $HR=$null}
 
 #IF account is disabled enable update SAMAccount if needed, else create a new account
-$PWord="*******
+$PWord="*******"
 IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
     $userID1=Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SAMAccountName
     IF($userID -ne $userID1){
@@ -140,12 +131,14 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
     IF($null -ne $NAMEmiddle){Set-ADUser -Identity $userID -replace @{middleName=$NAMEmiddle}}
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
-    IF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office*******"
-        $Egl="******* $POS"
-        $MS='*******'}
-    elseIF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* $POS"
-        $MS='*******'}
+    #*******
+    IF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
+        $Egl="******* / ******* / ******* / $POS / *******"
+        $MS='n/a'}
+    elseIF($JOBtitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
+        $Egl="******* / ******* / ******* / ******* / $POS / *******"
+        $MS='n/a'}
+#Not Listed/New Title
     else{
         $Egl='Position not listed in script / compare with similar title and/or reach out to Manager'
         $MS='TBD'}
