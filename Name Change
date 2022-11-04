@@ -20,16 +20,16 @@ Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
 }
 
 
-
 #Part two, update username and set proxies
 
-param($email,$userID,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle)
+param($email,$userID,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$OU,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle)
     $email='%email%'
         $userIDa=[string]$email.Split('@')[0..($email.Split('@').count-2)]
     $empID='%empID%'
         $eA10=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
         $Office=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty office
             $3cx=IF($Office -eq 'Admin'){'Update name attached to extension (3cx and Confluence - Admin Phone Extension)'}else{$null}
+        $OU=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
         $userIDo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SamAccountName
     $NAMEfirst='%NAMEfirst%'
     $NAMElast='%NAMElast%'
@@ -38,10 +38,11 @@ param($email,$userID,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$userIDo,$
 #UserID length test
 $NAMEfirstScrb=$NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
 $NAMElastScrb=$NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+$NAMEf=$NAMEfirstScrb[0]
+
 IF($email -eq '' -or $userIDa -eq ''){
     $userIDa="$NAMEfirstScrb.$NAMElastScrb"}
         $testA=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDa*"} | Select-Object -ExpandProperty Enabled
-$NAMEf=$NAMEfirstScrb[0]
     $userIDb="$NAMEfirstScrb.$NAMEmiddle.$NAMElastScrb"
         $testB=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDb*"} | Select-Object -ExpandProperty Enabled
     $userIDc="$NAMEf.$NAMElastScrb"
