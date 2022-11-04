@@ -1,4 +1,5 @@
 #Part one, changing only name not username
+#Part one runs during business hours and an email is sent out to the user and manager(s) containing the new login
 
 param($empID,$OU,$NAMEdisplay,$NAMEfirst,$NAMElast,$NAMEmiddle,$pName,$prefName,$displayName,$NAMEfull)
     $empID='%empID%'
@@ -21,6 +22,7 @@ Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
 
 
 #Part two, update username and set proxies
+#Part two runs after business hours to prevent access hours while the employee is working
 
 param($email,$userID,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$OU,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle)
     $email='%email%'
