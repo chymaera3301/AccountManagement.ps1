@@ -4,9 +4,9 @@ Scripts are ran within Power Automate Desktop, process utilizes both Web and Des
 >>-JSON is then parsed and variables created in PAW*<br/>
 >>-Data is then sent to PAD* where attached Powershell scripts and Desktop Recordings are utilized<br/>
 >>-Data from PAD* is then sent back to PAW*<br/>
->>>-Sharepoint lists are then updated for tracking. Shows when an item is in process, then if it passed or failed<br/>
--Emails sent out to those in management roles containing associated account information<br/>
--Additional email sent to Account Management to add access that has yet to be automated<br/>
+>>-Sharepoint lists are then updated for tracking. Shows when an item is in process, then if it passed or failed<br/>
+>>-Emails sent out to those in management roles containing associated account information<br/>
+>>-Additional email sent to Account Management to add access that has yet to be automated<br/>
 
 PAW = Power Automate Web<br/>
 PAD = Power Automate Desktop<br/>
