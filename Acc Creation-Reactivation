@@ -1,22 +1,22 @@
-param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$3cx,$OUa,$OU,$DOB,$DOH,$email,$empID,$empVLD,$givenName,$NAMEfirst,$JOBtitle,$mngrID,$mngrAD,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
+param($EaglePW,$City,$cReason,$Dept,$office,$DC,$Lat,$Lat2,$3cx,$OUa,$OU,$DOB,$DOH,$email,$empID,$empVLD,$givenName,$NAMEfirst,$jobTitle,$mngrID,$mngrAD,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
     $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
     $City='%city%'
     $cReason='%changeReason%'
     $Dept='%dept%'
-        $Office=IF($Dept -eq '*******'){'*******'}
+        $office=IF($Dept -eq '*******'){'*******'}
                     elseIF($Dept -eq '*******'){'*******'}
-                    elseIF('%Office%' -eq '*******'){'*******'}
-                    else{'%Office%'}
-            $DC=IF($Office -eq 'Nothern DC Butte'){'NDC'}elseIF($Office -eq 'Southern DC'){'SDC'}
-            $Lat=IF($Office -like "*thern DC"){"Create Latitude/PathGuide account, Password $EaglePW"}else{'N/A'}
-            $Lat2=IF($Office -like "*thern DC"){'Latitude will be same as Eagle/POS, please reach out if unable to login.'}else{$null}
-            $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension)`
+                    elseIF('%office%' -eq '*******'){'*******'}
+                    else{'%office%'}
+            $DC=IF($office -eq 'Nothern DC Butte'){'NDC'}elseIF($office -eq 'Southern DC'){'SDC'}
+            $Lat=IF($office -like "*thern DC"){"Create Latitude/PathGuide account, Password $EaglePW"}else{'N/A'}
+            $Lat2=IF($office -like "*thern DC"){'Latitude will be same as Eagle/POS, please reach out if unable to login.'}else{$null}
+            $3cx=IF($office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension)`
                                         IP phone = Extension`
                                         extensionAttribute13 = Full number (DID)'}else{'N/A'}
         $OUa=IF($Dept -eq '*******'){'*******'}
                 elseIF($Dept -eq '*******'){'*******'}
                 else{$Dept}
-            $OU=IF($Office -eq 'Admin'){"$OUa*******"}else{"$Office*******"}
+            $OU=IF($office -eq 'Admin'){"$OUa*******"}else{"$office*******"}
     $DOB='%DOB%'
     $DOH='%DateOfHire%'
     $email='%email%'
@@ -24,9 +24,9 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$3cx,$OUa,$OU,$DOB,$D
         $empVLD=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty employeeID
     $givenName='%NAMEfirst%'
         $NAMEfirst=$givenname.substring(0,1).toupper()+$givenname.substring(1).tolower()
-    $JOBtitle='%JOBtitle%'
+    $jobTitle='%jobTitle%'
     $mngrID=IF('%MngrID%' -ne ''){'%MngrID%'}else{
-        Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID}
+        Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID}
         $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty SamAccountName
         $Phone=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty extensionAttribute12
     $sn='%NAMElast%'
@@ -82,7 +82,6 @@ $NAMEf=$NAMEfirstScrb[0]
     $userIDc="$NAMEf.$NAMElastScrb"
         $testC=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDc*"} | Select-Object -ExpandProperty Enabled
     $userIDd="$NAMEf$NAMEmiddle.$NAMElastScrb"
-
 IF($testA -ne 'True' -AND $userIDa.length -gt 20){
     IF($testB -ne 'True' -AND $userIDb.length -gt 20){
         IF($testC -ne 'True' -AND $userIDc.length -gt 20){
@@ -126,16 +125,16 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
         Start-Sleep -s 15
     Set-ADAccountPassword -identity $userID -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)
     Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
-    Set-ADUser -Identity $userID -ChangePasswordAtLogon $true -City $City -Company "*******" -Country 'US' -Department $Dept -EmployeeID $empID -Enabled $true -manager $mngrAD -office $Office -PostalCode $Zip -state $State -StreetAddress $Street -title $JOBtitle
-    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{extensionAttribute1=$DOB;extensionAttribute2=$DOH;extensionAttribute4=$JOBtitle;extensionAttribute5=$Office;extensionAttribute6=$mngrAD;extensionAttribute10=$eA10;extensionAttribute12=$Phone;homePhone=$Phone;telephoneNumber=$Phone;initials=$eA10}
+    Set-ADUser -Identity $userID -ChangePasswordAtLogon $true -City $City -Company "*******" -Country 'US' -Department $Dept -EmployeeID $empID -Enabled $true -manager $mngrAD -office $office -PostalCode $Zip -state $State -StreetAddress $Street -title $jobTitle
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{extensionAttribute1=$DOB;extensionAttribute2=$DOH;extensionAttribute4=$jobTitle;extensionAttribute5=$office;extensionAttribute6=$mngrAD;extensionAttribute10=$eA10;extensionAttribute12=$Phone;homePhone=$Phone;telephoneNumber=$Phone;initials=$eA10}
     IF($null -ne $NAMEmiddle){Set-ADUser -Identity $userID -replace @{middleName=$NAMEmiddle}}
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
     #*******
-    IF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
+    IF($jobTitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$office *******"
         $Egl="******* / ******* / ******* / $POS / *******"
         $MS='n/a'}
-    elseIF($JOBtitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
+    elseIF($jobTitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$office *******"
         $Egl="******* / ******* / ******* / ******* / $POS / *******"
         $MS='n/a'}
 #Not Listed/New Title
@@ -144,29 +143,33 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
         $MS='TBD'}
 
 #Email list
-    $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq '%Office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq '%Office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq '%Office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq '%Office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq '%office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq '%office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq '%office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq '%office%' -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
     $Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
-IF($Office -ne 'Admin'){
-    $eMGR=IF($Dept -eq 'Clothing'){"$Amgr;$Bkpr;$Cmgr;$Smgr"}
+    IF($office -ne 'Admin'){
+        $eMGR=IF($Dept -eq 'Clothing'){"$Amgr;$Bkpr;$Cmgr;$Smgr"}
             elseIF($Dept -eq 'Sporting Goods'){"$Amgr;$Bkpr;$SGDm;$Smgr"}
             else{"$Amgr;$Bkpr;$Smgr"}
-}else{$eMGR=$Smgr}
+    }else{$eMGR=$Smgr}
 
-#Output data to .txt
-$3cx | Out-File -FilePath C:\Apps\AR3cx.txt
-$eA10 | Out-File -FilePath C:\Apps\eA10.txt
-$EaglePW | Out-File -FilePath C:\Apps\EaglePW.txt
-$Egl | Out-File -FilePath C:\Apps\ARegl.txt
-$eMGR | Out-File -FilePath C:\Apps\eMGR.txt
-$grID | Out-File -FilePath C:\Apps\grID.txt
-$HR | Out-File -FilePath C:\Apps\HR.txt
-$Lat | Out-File -FilePath C:\Apps\ARlat.txt
-$Lat2 | Out-File -FilePath C:\Apps\ARlat2.txt
-$mngrAD | Out-File -FilePath C:\Apps\mngrAD.txt
-$MS | Out-File -FilePath C:\Apps\ARms.txt
-$PWord | Out-File -FilePath C:\Apps\adPW.txt
-$email | Out-File -FilePath C:\Apps\eUPN.txt
-$userID | Out-File -FilePath C:\Apps\userID.txt
+#Create JSON
+$JSON=[pscustomobject]@{
+    eagleAR=$Egl
+    eagleID=$eA10
+    eaglePW=$EaglePW
+    email=$email
+    eMGR=$eMGR
+    ext=$3cx
+    grID=$grID
+    HR=$HR
+    latAR=$Lat
+    latNotif=$Lat2 
+    mngrAD=$mngrAD
+    msAR=$MS
+    fullName=$NAMEfull
+    pWord=$PWord
+    userID=$userID 
+}
+$JSON | ConvertTo-Json -Compress | Write-Output
