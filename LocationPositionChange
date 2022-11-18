@@ -1,36 +1,36 @@
-param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $eA10, $JOBtitleO, $OfficeO, $JOBtitle, $mngrID, $City, $mngrAD, $mngrOU, $Phone, $State, $POS, $Street, $Zip, $StoreID, $userID, $Groups)
-    $ChangeType="%ChangeType%"
-    $Dept="%DEPT%"
+param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $eA10, $jobTitleO, $OfficeO, $jobTitle, $mngrID, $City, $mngrAD, $mngrOU, $Phone, $State, $POS, $Street, $Zip, $StoreID, $userID, $Groups)
+    $ChangeType='%ChangeType%'
+    $Dept='%dept%'
         $Office=IF($Dept -eq '*******'){'*******'}
-            elseIF($Dept -eq '*******'){'*******'}
-            elseIF('%Office%' -eq '*******'){'*******'}
-            else{'%Office%'}
-                $DC=IF($Office -eq 'Nothern DC'){'NDC'}elseIF($Office -eq 'Southern DC'){'SDC'}
-                $Lat=IF($Office -like "*thern DC"){'Create Latitude/PathGuide account'}else{'N/A'}
-                $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension)`
-                                                IP phone = Extension`
-                                                extensionAttribute13 = Full number (DID)'}else{'N/A'}
+                elseIF($Dept -eq '*******'){'*******'}
+                elseIF('%Office%' -eq '*******'){'*******'}
+                else{'%Office%'}
+            $DC=IF($Office -eq 'Nothern DC'){'NDC'}elseIF($Office -eq 'Southern DC'){'SDC'}
+            $Lat=IF($Office -like "*thern DC"){'Create Latitude/PathGuide account'}else{'N/A'}
+            $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension)`
+                                            IP phone = Extension`
+                                            extensionAttribute13 = Full number (DID)'}else{'N/A'}
         $OUa=IF($Dept -eq '*******'){'*******'}
                 elseIF($Dept -eq '*******'){'*******'}
                 else{$Dept}
             $OU=IF($Office -eq 'Admin'){"$OUa*******"}else{"$Office*******"}
-    $email="%Email%"
-    $empID="%empID%"
+    $email='%email%'
+    $empID='%empID%'
         $eA10=Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty extensionAttribute10
-        $JOBtitleO =Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty title
+        $jobTitleO =Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty title
         $OfficeO=Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandPropert physicalDeliveryOfficeName
-    $JOBtitle="%JOBtitle%"
-    $mngrID="%mngrID%"
+    $jobTitle='%jobTitle%'
+    $mngrID='%mngrID%'
         $City=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty l
         $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty SamAccountName
         $mngrOU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty distinguishedName
         $Phone=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty extensionAttribute12
-        $State=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty st
+        $State='%state%'
             $POS=IF($State -eq 'MT'){'POSMT'}else{'POS'}
         $Street=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty streetAddress
         $Zip=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty postalCode
-    $StoreID="%StoreID%"
-    $userID="%userID%"
+    $StoreID='%StoreID%'
+    $userID='%userID%'
         $Groups=(Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
                 IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
 
@@ -38,7 +38,7 @@ param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $
     Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
     Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
         department=$Dept;`
-        extensionAttribute4=$JOBtitle;`
+        extensionAttribute4=$jobTitle;`
         extensionAttribute5=$Office;`
         extensionAttribute6=$mngrAD;`
         extensionAttribute12=$Phone;`
@@ -49,14 +49,14 @@ param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $
         st=$state;`
         streetAddress=$Street;`
         telephoneNumber=$Phone;`
-        title=$JOBtitle}
+        title=$jobTitle}
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
     #*******
-    IF($JOBtitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
+    IF($jobTitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
         $Egl="******* / ******* / ******* / $POS / *******"
         $MS='n/a'}
-    elseIF($JOBtitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
+    elseIF($jobTitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
         $Egl="******* / ******* / ******* / ******* / $POS / *******"
         $MS='n/a'}
 #Not Listed/New Title
@@ -76,13 +76,15 @@ param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $
                 else{"$Amgr;$Bkpr;$Smgr"}}
         else{$eMGR=$Smgr}
 
-#Output data to .txt
-$eA10 | Out-File -FilePath C:\Apps\LPC\eA10.txt
-$Egl | Out-File -FilePath C:\Apps\LPC\ARegl.txt
-$eMGR | Out-File -FilePath C:\Apps\LPC\eMGR.txt
-$JOBtitleO | Out-File -FilePath C:\Apps\LPC\JOBtitleO.txt
-$Lat | Out-File -FilePath C:\Apps\LPC\ARlat.txt
-$MS | Out-File -FilePath C:\Apps\LPC\ARms.txt
-$Office | Out-File -FilePath C:\Apps\LPC\Office.txt
-$OfficeO | Out-File -FilePath C:\Apps\LPC\OfficeO.txt
-$3CX | Out-File -FilePath C:\Apps\LPC\3CX.txt
+#Create JSON
+$JSON=[pscustomobject]@{
+    eagleAR=$Egl
+    eagleID=$eA10
+    eMGR=$eMGR
+    ext=$3cx
+    jobTitleO=$jobTitleO
+    latAR=$Lat
+    msAR=$MS
+    officeO=$OfficeO
+}
+$JSON | ConvertTo-Json -Compress | Write-Output
