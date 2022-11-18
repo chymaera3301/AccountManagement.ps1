@@ -1,10 +1,13 @@
-param($empID, $userID, $eA10, $Groups, $NAMEfull, $OU)
-    $userID = Get-ADUser -Filter {employeeID -eq "%EmpID%"} | Select-Object -ExpandProperty SamAccountName
-        $eA10 = Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
-        $Groups = (Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
-        $JOBtitle = Get-ADUser $userID -Properties * | Select-Object -expandProperty title
-        $NAMEfull = Get-ADUser -Filter {SamAccountName -eq $userID} | Select-Object -ExpandProperty Name
-        $OU =  Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distinguishedName    
+#Part 1
+param($email,$empID,$userID,$eA10,$Groups,$NAMEfull,$OU)
+    $email=Get-ADUser -Filter {employeeID -eq "%empID%"} | Select-Object -ExpandProperty userPrincipalName
+    $userID=Get-ADUser -Filter {employeeID -eq "%empID%"} | Select-Object -ExpandProperty SamAccountName
+        $eA10=Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
+        $Groups=(Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
+        $jobTitle=Get-ADUser $userID -Properties * | Select-Object -expandProperty title
+        $NAMEfull=Get-ADUser -Filter {SamAccountName -eq $userID} | Select-Object -ExpandProperty Name
+        $OU= Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distinguishedName 
+   
 IF($OU -ne "$NAMEfull*******"){
     Disable-ADAccount -Identity $userID
     Get-ADUser $userID | Move-ADObject -TargetPath "*******"
@@ -12,11 +15,17 @@ IF($OU -ne "$NAMEfull*******"){
 IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
 Set-ADUser -Identity $userID -clear facsimileTelephoneNumber,homePhone,ipPhone,telephoneNumber,initials
 
-$eA10 | Out-File -FilePath C:\Apps\EagleID.txt
-$JOBtitle | Out-File -FilePath C:\Apps\Title.txt
+#Create JSON
+$JSON=[pscustomobject]@{
+    eagleID=$eA10
+    email=$email
+    jobTitle=$jobTitle
+}
+$JSON | ConvertTo-Json -Compress | Write-Output
 
-#Used in a different segment within PAD (Power Automate Desktop)
-$userID = Get-ADUser -Filter {employeeID -eq "%EmpID%"} | Select-Object -ExpandProperty SamAccountName
-$Date = '%TerminationDate%' -split 'T00:00:00'
-	Set-ADUser $userID -Clear extensionAttribute10
-	Set-ADuser $userID -Description "Terminated $Date"
+
+#Part 2
+$userID=Get-ADUser -Filter {employeeID -eq "%empID%"} | Select-Object -ExpandProperty SamAccountName
+$Date='%termDate%' -split 'T00:00:00'
+    Set-ADUser $userID -Clear extensionAttribute10
+    Set-ADuser $userID -Description "Terminated $Date"
