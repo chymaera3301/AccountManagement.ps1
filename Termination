@@ -1,19 +1,23 @@
-#Part 1
-param($email,$empID,$userID,$eA10,$Groups,$NAMEfull,$OU)
-    $email=Get-ADUser -Filter {employeeID -eq "%empID%"} | Select-Object -ExpandProperty userPrincipalName
-    $userID=Get-ADUser -Filter {employeeID -eq "%empID%"} | Select-Object -ExpandProperty SamAccountName
-        $eA10=Get-ADUser $userID -Properties * | Select-Object -ExpandProperty extensionAttribute10
-        $Groups=(Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
-        $jobTitle=Get-ADUser $userID -Properties * | Select-Object -expandProperty title
-        $NAMEfull=Get-ADUser -Filter {SamAccountName -eq $userID} | Select-Object -ExpandProperty Name
-        $OU= Get-ADUser $userID -Properties * | Select-Object -ExpandProperty distinguishedName 
+param($empID,$badProxy,$eA10,$email,$jobTitle,$NAMEfull,$OU,$userID,$Groups)
+    $empID="%empID%"
+        $badProxy=(Get-ADUser -Filter {employeeID -eq $empID} -Properties * |`
+                        Select-Object -ExpandProperty proxyAddresses |`
+                        Where-Object {($_ -match '*******') -or ($_ -match '*******') -or ($_ -match '*******') -or ($_ -match '*******')}) -join ','
+        $eA10=Get-ADUser -Filter {employeeID -eq $empID} -Properties *  | Select-Object -ExpandProperty extensionAttribute10
+        $email=Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty userPrincipalName
+        $jobTitle=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -expandProperty title
+        $NAMEfull=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty Name
+        $OU=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
+        $userID=Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SamAccountName
+            $Groups=(Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
    
 IF($OU -ne "$NAMEfull*******"){
     Disable-ADAccount -Identity $userID
     Get-ADUser $userID | Move-ADObject -TargetPath "*******"
 }else{}
 IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
-Set-ADUser -Identity $userID -clear facsimileTelephoneNumber,homePhone,ipPhone,telephoneNumber,initials
+Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses="$badProxy"  -split ","}
+Set-ADUser -Identity $userID -clear facsimileTelephoneNumber,homePhone,initials,ipPhone,MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails,telephoneNumber
 
 #Create JSON
 $JSON=[pscustomobject]@{
@@ -24,8 +28,8 @@ $JSON=[pscustomobject]@{
 $JSON | ConvertTo-Json -Compress | Write-Output
 
 
-#Part 2
+#Second part, clearing Epicor Eagle ID after account deleted is successful
 $userID=Get-ADUser -Filter {employeeID -eq "%empID%"} | Select-Object -ExpandProperty SamAccountName
-$Date='%termDate%' -split 'T00:00:00'
+$Date="%termDate%" -split 'T00:00:00'
     Set-ADUser $userID -Clear extensionAttribute10
     Set-ADuser $userID -Description "Terminated $Date"
