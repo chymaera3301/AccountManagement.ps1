@@ -1,38 +1,45 @@
-param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $eA10, $jobTitleO, $OfficeO, $jobTitle, $mngrID, $City, $mngrAD, $mngrOU, $Phone, $State, $POS, $Street, $Zip, $StoreID, $userID, $Groups)
-    $ChangeType='%ChangeType%'
-    $Dept='%dept%'
-        $Office=IF($Dept -eq '*******'){'*******'}
-                elseIF($Dept -eq '*******'){'*******'}
-                elseIF('%Office%' -eq '*******'){'*******'}
-                else{'%Office%'}
+param($EaglePW,$ChangeType,$Dept,$Office,$DC,$Lat,$OUa,$OU,$email,$empID,$deptO,$DID,$eA10,$ext,$jobTitleO,$OfficeO,$userOU,$jobTitle,$3cx,$mngrID,$City,$mngrAD,$mngrOU,$Phone,$State,$POS,$Street,$Zip,$StoreID,$userID,$Groups)
+    $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
+    $ChangeType="%ChangeType%"
+    $Dept="%dept%"
+        $Office=Switch($Dept){
+                '*******'{'*******'}
+                '*******'{'*******'}
+                default{"%*******%"}}
             $DC=IF($Office -eq 'Nothern DC'){'NDC'}elseIF($Office -eq 'Southern DC'){'SDC'}
-            $Lat=IF($Office -like "*thern DC"){'Create Latitude/PathGuide account'}else{'N/A'}
-            $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension)`
-                                            IP phone = Extension`
-                                            extensionAttribute13 = Full number (DID)'}else{'N/A'}
-        $OUa=IF($Dept -eq '*******'){'*******'}
-                elseIF($Dept -eq '*******'){'*******'}
-                else{$Dept}
-            $OU=IF($Office -eq 'Admin'){"$OUa*******"}else{"$Office*******"}
-    $email='%email%'
-    $empID='%empID%'
+            $Lat=IF($Office -like "*thern DC" -Or "%jobTitle%" -like "IT Support*"){"Create Latitude/PathGuide account, Password $EaglePW"}else{'N/A'}
+        $OUa=Switch($Dept){
+                '*******'{'*******'}
+                '*******'{'*******'}
+                default{$Dept}}
+            $OU=IF($Office -eq '*******'){"$OUa*******"}else{"*******$Office"}
+    $email="%email%"
+    $empID="%empID%"
+        $deptO=Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty department
+        $DID=IF($Office -eq 'Admin'){Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty extensionAttribute13}
         $eA10=Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty extensionAttribute10
+        $ext=IF($Office -eq 'Admin'){Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty ipPhone}
         $jobTitleO =Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandProperty title
         $OfficeO=Get-ADUser -Filter {employeeID -eq $empID}  -Properties * | Select-Object -ExpandPropert physicalDeliveryOfficeName
-    $jobTitle='%jobTitle%'
-    $mngrID='%mngrID%'
+        $userOU=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
+    $jobTitle="%jobTitle%"
+        $3cx=IF($Office -eq 'Admin' -AND $Office -ne $OfficeO){'Create extension via 3CX, update Confluence (Admin Phone Extension) | IPphone = Extension | extensionAttribute13 = Full number (DID)'
+            }elseIF($Office -eq 'Admin' -AND $Office -eq $OfficeO){"Update job title for associated extension in Confluence (Admin Phone Extension) | Ext: $ext | DID: $DID"
+            }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){"Update $jobTitle extension in $Office, if one exists"}else{'N/A'}
+    $mngrID="%mngrID%"
         $City=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty l
         $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty SamAccountName
         $mngrOU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty distinguishedName
         $Phone=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty extensionAttribute12
-        $State='%state%'
+        $State="%state%"
             $POS=IF($State -eq 'MT'){'POSMT'}else{'POS'}
         $Street=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty streetAddress
         $Zip=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty postalCode
-    $StoreID='%StoreID%'
-    $userID='%userID%'
+    $StoreID="%StoreID%"
+    $userID="%userID%"
         $Groups=(Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
-                IF($Groups -eq ''){}else{Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
+                IF($Dept -eq 'Information Technology' -OR $Dept -eq $deptO){
+                }elseIF($Groups -ne ''){Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false}
 
 #Update Profile
     Get-ADUser $userID | Move-ADObject -TargetPath "$OU*******"
@@ -52,29 +59,45 @@ param($ChangeType, $Dept, $Office, $DC, $Lat, $3cx, $OUa, $OU, $email, $empID, $
         title=$jobTitle}
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
-    #*******
-    IF($jobTitle -eq '*******'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
-        $Egl="******* / ******* / ******* / $POS / *******"
+Switch($jobTitle){
+    #Back Office
+    '*******'{Get-ADUser -Filter * -SearchBase "$office*******" -Properties * | ForEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
+        $Egl="******* / $POS / *******"
         $MS='n/a'}
-    elseIF($jobTitle -eq 'Assistant Manager Trainee'){Add-ADPrincipalGroupMembership $userID -MemberOf "$Office *******"
-        $Egl="******* / ******* / ******* / ******* / $POS / *******"
+    '*******'{
+        $Egl="$POS / *******"
+        $MS=IF($Office -eq '*******'){'*******'}else{'*******'}}
+#Frontline
+    '*******'{
+        $Egl="$POS"
         $MS='n/a'}
+    '*******'{
+        $Egl="$POS"
+        $MS=IF($Office -eq '*******'){"$Office ******* / *******"}else{"$Office *******"}}
+    '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
+        $Egl="******* / $POS"
+        $MS='n/a'}
+#Home Office / Admin
+    '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
+        $Egl='*******'
+        $MS='*******'}
 #Not Listed/New Title
-    else{
-        $Egl='Position not listed in script / compare with similar title and/or reach out to Manager'
-        $MS='TBD'}
+    default{
+        $Egl='Position not listed in script. Compare with similar title and/or reach out to Manager'
+        $MS='Compare with similar title and/or reach out to Manager (Azure and Local AD)'}}
 
 #Email list
-        $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq $Office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-        $Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
+    $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+    $Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
     IF($Office -ne 'Admin'){
-            $eMGR=IF($Dept -eq 'Clothing'){"$Amgr;$Bkpr;$Cmgr;$Smgr"}
-                elseIF($Dept -eq 'Sporting Goods'){"$Amgr;$Bkpr;$SGDm;$Smgr"}
-                else{"$Amgr;$Bkpr;$Smgr"}}
-        else{$eMGR=$Smgr}
+        $eMGR=Switch($Dept){
+                'Clothing'{"$Amgr;$Bkpr;$Cmgr;$Smgr"}
+                'Sporting Goods'{"$Amgr;$Bkpr;$SGDm;$Smgr"}
+                default{"$Amgr;$Bkpr;$Smgr"}}
+    }else{$eMGR=$Smgr}
 
 #Create JSON
 $JSON=[pscustomobject]@{
