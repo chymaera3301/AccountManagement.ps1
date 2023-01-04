@@ -1,13 +1,17 @@
 Param($empID, $mngrID, $mngrAD, $mngrName, $mngrADo, $mngrNameO, $mngrOU)
     $empID='%empID%'
     $mngrID='%mngrID%'
-        $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty SamAccountName
-            $mngrName=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty name
-        $mngrADo=Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty extensionAttribute6
-            $mngrNameO=Get-ADUser -Filter {SAMAccountName -eq $mngrADo} | Select-Object -ExpandProperty name
-        $mngrOU=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty distinguishedName
+        $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty SamAccountName
+            $mngrName=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty name
+        $mngrADo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute6
+            $mngrNameO=Get-ADUser -Filter {SAMAccountName -eq $mngrADo} -Properties * | Select-Object -ExpandProperty name
+        $mngrOU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty distinguishedName
 
 Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{extensionAttribute6=$mngrAD;manager=$mngrOU}
 
-$mngrName | Out-File -FilePath C:\Apps\mngrU\mngrName.txt
-$mngrNameO | Out-File -FilePath C:\Apps\mngrU\mngrNameO.txt
+#Create JSON
+$JSON=[pscustomobject]@{
+    mngrName=$mngrName
+    mngrNameO=$mngrNameO
+}
+$JSON | ConvertTo-Json -Compress | Write-Output
