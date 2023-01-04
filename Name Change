@@ -1,112 +1,119 @@
 #Part one, changing only name. Does not update username and email
-#Part one runs during business hours and an email is sent out to the user and manager(s) containing the new login
+#Part one, runs during business hours and an email is sent out to the user and manager(s) containing the new login
 
-param($email,$userIDa,$empID,$emailO,$NAMEfirstO,$NAMElastO,$userIDo,$OU,$office,$NAMEfirst,$NAMElast,$prefName,$displayName,$mName,$NAMEmiddle,$NAMEfull)
-    $email='%email%'
-        $userIDa=[string]$email.Split('@')[0..($email.Split('@').count-2)]
-    $empID='%empID%'
-        $emailO=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty UserPrincipalName
-        $NAMEfirstO=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty givenName
-        $NAMElastO=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty surName
-        $userIDo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SAMAccountName
-        $OU=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
-    $office='%office%'
-    $NAMEfirst='%NAMEfirst%'
-    $NAMElast='%NAMElast%'
-    $prefName='%prefName%'.substring(0,1).toupper()+'%prefName%'.substring(1).tolower()
-        $displayName="$prefName $NAMElast"
-    $mngrID='%mngrID%'
-    $mName=IF('%NAMEmiddle%' -eq ''){$null}else{'%NAMEmiddle%'.substring(0,1).toupper()+'%NAMEmiddle%'.substring(1).tolower()}
-        $NAMEmiddle=$mName[0]
-        $NAMEfull=IF($null -eq $NAMEmiddle){"$NAMEfirst $NAMElast"}else{"$NAMEfirst $NAMEmiddle $NAMElast"}
+    param($email,$userIDa,$empID,$emailO,$NAMEfirstO,$NAMElastO,$userIDo,$OU,$office,$NAMEfirst,$NAMElast,$prefName,$displayName,$mName,$NAMEmiddle,$NAMEfull)
+        $email='%email%'
+            $userIDa=[string]$email.Split('@')[0..($email.Split('@').count-2)]
+        $empID='%empID%'
+            $emailO=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty UserPrincipalName
+            $NAMEfirstO=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty givenName
+            $NAMElastO=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty surName
+            $userIDo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SAMAccountName
+            $OU=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
+        $office='%office%'
+        $NAMEfirst='%NAMEfirst%'
+        $NAMElast='%NAMElast%'
+        $prefName='%prefName%'.substring(0,1).toupper()+'%prefName%'.substring(1).tolower()
+            $displayName="$prefName $NAMElast"
+        $mngrID='%mngrID%'
+        $mName=IF('%NAMEmiddle%' -eq ''){$null}else{'%NAMEmiddle%'.substring(0,1).toupper()+'%NAMEmiddle%'.substring(1).tolower()}
+            $NAMEmiddle=$mName[0]
+            $NAMEfull=IF($null -eq $NAMEmiddle){"$NAMEfirst $NAMElast"}else{"$NAMEfirst $NAMEmiddle $NAMElast"}
 
-Rename-ADObject -Identity $OU -NewName "$NAMEfull"
-Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
-    displayName=$displayName;`
-    givenName=$prefName;`
-    middleName=$NAMEmiddle`
-}
+    Rename-ADObject -Identity $OU -NewName "$NAMEfull"
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
+        displayName=$displayName;`
+        givenName=$prefName;`
+        middleName=$NAMEmiddle;`
+        sn=$NAMElast
+    }
 
-#IF email is not provided / UserID test and validation
-$NAMEfirstScrb=$NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-$NAMElastScrb=$NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-$NAMEf=$NAMEfirstScrb[0]
-IF($email -eq '' -or $userID -eq ''){
-    $userIDa="$NAMEfirstScrb.$NAMElastScrb"}
-        $testA=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDa*"} | Select-Object -ExpandProperty Enabled
-$NAMEf=$NAMEfirstScrb[0]
-    $userIDb="$NAMEfirstScrb.$NAMEmiddle.$NAMElastScrb"
-        $testB=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDb*"} | Select-Object -ExpandProperty Enabled
-    $userIDc="$NAMEf.$NAMElastScrb"
-        $testC=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDc*"} | Select-Object -ExpandProperty Enabled
-    $userIDd="$NAMEf$NAMEmiddle.$NAMElastScrb"
-IF($testA -ne 'True' -AND $userIDa.length -gt 20){
-    IF($testB -ne 'True' -AND $userIDb.length -gt 20){
-        IF($testC -ne 'True' -AND $userIDc.length -gt 20){
-            IF($userIDd.length -gt 20){
-                $userID=$userIDd
-                $email="$userIDd*******"
-                $HR="Provided UserID exceeds 20 characters or in use, contact HR to have UserID and Email updated to $userID / $email"}
+    #IF email is not provided / UserID test and validation
+    $NAMEfirstScrb=$NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+    $NAMElastScrb=$NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+    $NAMEf=$NAMEfirstScrb[0]
+    IF($email -eq '' -or $userID -eq ''){
+        $userIDa="$NAMEfirstScrb.$NAMElastScrb"}
+            $testA=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDa*"} | Select-Object -ExpandProperty Enabled
+    $NAMEf=$NAMEfirstScrb[0]
+        $userIDb="$NAMEfirstScrb.$NAMEmiddle.$NAMElastScrb"
+            $testB=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDb*"} | Select-Object -ExpandProperty Enabled
+        $userIDc="$NAMEf.$NAMElastScrb"
+            $testC=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDc*"} | Select-Object -ExpandProperty Enabled
+        $userIDd="$NAMEf$NAMEmiddle.$NAMElastScrb"
+    IF($testA -ne 'True' -AND $userIDa.length -gt 20){
+        IF($testB -ne 'True' -AND $userIDb.length -gt 20){
+            IF($testC -ne 'True' -AND $userIDc.length -gt 20){
+                IF($userIDd.length -gt 20){
+                    $userID=$userIDd
+                    $email="$userIDd*******"
+                    $hrNotif="Provided UserID exceeds 20 characters or in use"}
+            }else{
+                $userID=$userIDc
+                $email="$userIDc*******"
+                $hrNotif="Provided UserID exceeds 20 characters or in use"}
         }else{
-            $userID=$userIDc
-            $email="$userIDc*******"
-            $HR="Provided UserID exceeds 20 characters or in use, contact HR to have UserID and Email updated to $userID / $email"}
+            $userID=$userIDb
+            $email="$userIDb*******"
+            $hrNotif="Provided UserID exceeds 20 characters or in use"}
     }else{
-        $userID=$userIDb
-        $email="$userIDb*******"
-        $HR="Provided UserID exceeds 20 characters or in use, contact HR to have UserID and Email updated to $userID / $email"}
-}else{
-    $userID=$userIDa
-    $email="$userIDa*******"
-    $HR=''}
+        $userID=$userIDa
+        $email="$userIDa*******"
+        $hrNotif=''}
 
-#Email list
-$Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq $office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq $office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq $office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq $office -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
-IF($Office -ne 'Admin'){
-    $eMGR=IF($Dept -eq 'Clothing'){"$Amgr;$Bkpr;$Cmgr;$Smgr"}
-        elseIF($Dept -eq 'Sporting Goods'){"$Amgr;$Bkpr;$SGDm;$Smgr"}
-        else{"$Amgr;$Bkpr;$Smgr"}
-}else{$eMGR=$Smgr}
+    #Email list
+        $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+        $Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
+        IF($Office -ne 'Admin'){
+            $eMGR=Switch($Dept){
+                    'Clothing'{"$Amgr;$Bkpr;$Cmgr;$Smgr"}
+                    'Sporting Goods'{"$Amgr;$Bkpr;$SGDm;$Smgr"}
+                    default{"$Amgr;$Bkpr;$Smgr"}}
+        }else{$eMGR=$Smgr}
 
-#Create JSON
-$JSON=[pscustomobject]@{
-    emailN=$email
-    eMGR=$eMGR
-    hrNotif=$HR
-    prevEmail=$emailO
-    prevFirstName=$NAMEFirstO
-    prevLastName=$NAMElastO
-    prevUserID=$userIDo
-    userID=$userID
-}
-$JSON | ConvertTo-Json -Compress | Write-Output
-
+    #Create JSON
+    $JSON=[pscustomobject]@{
+        emailN=$email
+        eMGR=$eMGR
+        hrNotif=$hrNotif
+        prevEmail=$emailO
+        prevFirstName=$NAMEFirstO
+        prevLastName=$NAMElastO
+        prevUserID=$userIDo
+        userID=$userID
+    }
+    $JSON | ConvertTo-Json -Compress | Write-Output
 
 
 #Part two, updates username and set proxies
 #Part two runs after business hours to prevent access hours while the employee is not working
 
-param($email,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle,$userID)
-    $email='%email%'
-    $empID='%empID%'
-        $eA10=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
-        $Office=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty office
-            $3cx=IF($Office -eq 'Admin'){'Update name attached to extension (3cx and Confluence - Admin Phone Extension)'}else{$null}
-        $userIDo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SamAccountName
-    $userID='%userID%'
+    param($email,$empID,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle,$userID)
+        $email='%email%'
+        $empID='%empID%'
+            $eA10=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
+            $Office=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty office
+                $3cx=IF($Office -eq 'Admin'){'Update name attached to extension (3cx and Confluence - Admin Phone Extension)'}else{''}
+            $userIDo=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty SamAccountName
+        $userID='%userID%'
 
-#Update email and set proxies
-    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{mail=$email;sAMAccountName=$userID;userPrincipalName=$email}
-    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses="$userIDo*******"}
-    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -add @{ProxyAddresses="$email,userIDo*******" -split ","}
+    #Update email and set proxies
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{`
+                mail=$email;mailNickname=$userID;`
+                sAMAccountName=$userID;`
+                targetAddress="$userID*******";`
+                userPrincipalName=$email}
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{`
+                ProxyAddresses="$userIDo*******"}
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -add @{`
+                ProxyAddresses="$email,$userIDo*******" -split ","}
 
-#Create JSON
-$JSON=[pscustomobject]@{
-    eagleID=$eA10
-    ext=$3cx
-}
-$JSON | ConvertTo-Json -Compress | Write-Output
+    #Create JSON
+    $JSON=[pscustomobject]@{
+        eagleID=$eA10
+        ext=$3cx
+    }
+    $JSON | ConvertTo-Json -Compress | Write-Output
