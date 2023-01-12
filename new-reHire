@@ -118,7 +118,7 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
                             ($_ -match '*******') -or`
                             ($_ -match '*******') -or`
                             ($_ -match '*******')}
-    IF($badProxies){forEach ($proxy in $badProxies){Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses=$proxy}}}
+                IF($badProxies){forEach ($proxy in $badProxies){Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses=$proxy}}}
     Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails
     Get-ADUser -Filter {employeeID -eq $empID} | Enable-ADAccount
     Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -description $null
