@@ -1,4 +1,3 @@
-*******
 param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$email,$empID,$empVLD,$givenName,$NAMEfirst,$jobTitle,$3cx,$mngrID,$mngrAD,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
     $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
     $City="%city%"
@@ -114,15 +113,18 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
         Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{mail=$email;mailNickname=$userID;sAMAccountName=$userID;sn=$NAMElast;targetAddress="$userID*******";userPrincipalName=$email}
         $grID="$userIDtst*******"
     }else{$grID="$userID*******"}
-        $badProxy=(Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty proxyAddresses |`
-            Where-Object {($_ -match '*******') -or ($_ -match '*******') -or ($_ -match '*******') -or ($_ -match '*******')}) -join ','
-        Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses="$badProxy"  -split ","}
-        Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails
-        Get-ADUser -Filter {employeeID -eq $empID} | Enable-ADAccount
-        Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -description $null
-        Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{displayName=$displayName;givenName=$prefName}
-        $DN=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
-            Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
+    $badProxies=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty proxyAddresses |`
+                Where-Object{($_ -match '*******') -or`
+                            ($_ -match '*******') -or`
+                            ($_ -match '*******') -or`
+                            ($_ -match '*******')}
+    IF($badProxies){forEach ($proxy in $badProxies){Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -remove @{ProxyAddresses=$proxy}}}
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails
+    Get-ADUser -Filter {employeeID -eq $empID} | Enable-ADAccount
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -description $null
+    Get-ADUser -Filter {employeeID -eq $empID} | Set-ADUser -replace @{displayName=$displayName;givenName=$prefName}
+    $DN=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty distinguishedName
+        Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
 }else{
     New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $NAMElast -samaccountname $userID -UserPrincipalName $email -EmailAddress $email
     Set-ADUser -Identity $userID -add @{ProxyAddresses="$email"}
