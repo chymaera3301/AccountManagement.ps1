@@ -29,10 +29,7 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
     $DOH="%DateOfHire%"
     $email="%email%"
     $empID="%empID%"
-        forEach($emp in $empID){
-            $empVLD=Get-ADUser $emp -Properties * | Select-Object -ExpandProperty employeeID
-            $userOU=Get-ADUser $emp -Properties * | Select-Object -ExpandProperty distinguishedName
-        }
+        $empVLD=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty employeeID
     $givenName="%NAMEfirst%"
         $NAMEfirst=$givenname.substring(0,1).toupper()+$givenname.substring(1).tolower()
     $jobTitle="%jobTitle%"
@@ -48,11 +45,9 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
             }else{
                 Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
     }
-        forEach($mngr in $mngrID){
-            $mngrAD=Get-ADUser $mngr | Select-Object -ExpandProperty SamAccountName
-            $mngrOU=Get-ADuser $mngr -Properties * | Select-Object -ExpandProperty distinguishedName
-            $Phone=Get-ADUser $mngr -Properties * | Select-Object -ExpandProperty extensionAttribute12
-        }
+        $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty SamAccountName
+        $mngrOU=Get-ADuser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty distinguishedName
+        $Phone=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty extensionAttribute12
     $sn="%NAMElast%"
         $NAMElast=$sn.substring(0,1).toupper()+$sn.substring(1).tolower()
     $mName=IF("%NAMEmiddle%" -eq ''){$null
@@ -101,36 +96,31 @@ IF($null -ne $NAMEmiddle){
 IF($eA10_e -ne ''){
         $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_e}
     IF($eA10user){
-    }else{
-        $eA10=$eA10_e
+    }else{$eA10=$eA10_e
     }
 }
 IF($eA10_d -ne ''){
     $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_d}
     IF($eA10user){
-    }else{
-        $eA10=$eA10_d
+    }else{$eA10=$eA10_d
     }
 }
 IF($eA10_c -ne ''){
     $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_c}
     IF($eA10user){
-    }else{
-        $eA10=$eA10_c
+    }else{$eA10=$eA10_c
     }
 }
 IF($eA10_b -ne ''){
     $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_b}
     IF($eA10user){
-    }else{
-        $eA10=$eA10_b
+    }else{$eA10=$eA10_b
     }
 }
 IF($eA10_a -ne ''){
     $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_a}
     IF($eA10user){
-    }else{
-        $eA10=$eA10_a
+    }else{$eA10=$eA10_a
     }
 }
 
@@ -152,17 +142,17 @@ IF($testA -ne 'True' -AND $userIDa.length -gt 20){
             IF($userIDd.length -gt 20){
                 $userID=$userIDd
                 $email="$userIDd*******"
-                $hrNum='2'
+                IF($hrNum -eq '1'){$hrNum='1'}else{$hrNum='2'}
             }
         }else{
             $userID=$userIDc
             $email="$userIDc*******"
-            $hrNum='2'
+            IF($hrNum -eq '1'){$hrNum='1'}else{$hrNum='2'}
         }
     }else{
         $userID=$userIDb
         $email="$userIDb*******" 
-        $hrNum='2'
+        IF($hrNum -eq '1'){$hrNum='1'}else{$hrNum='2'}
     }
 }else{
     $userID=$userIDa
@@ -213,7 +203,6 @@ forEach($user in $userID){
         New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $NAMElast -samaccountname $userID -UserPrincipalName $email -EmailAddress $email
         Set-ADUser $user -add @{ProxyAddresses="SMTP:$email"}
         $grID="$userID*******"
-        $userOU=Get-ADUser $emp -Properties * | Select-Object -ExpandProperty distinguishedName
     }
 
     Start-Sleep -s 15
@@ -248,6 +237,7 @@ forEach($user in $userID){
     }
     Enable-ADAccount $User
     Get-ADUser $user | Move-ADObject -TargetPath "$OU*******"
+    $userOU=Get-ADUser $user -Properties * | Select-Object -ExpandProperty distinguishedName
 }
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
