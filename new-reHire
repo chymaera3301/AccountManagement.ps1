@@ -1,35 +1,40 @@
-param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$email,$empID,$empVLD,$givenName,$NAMEfirst,$jobTitle,$3cx,$mngrID,$mngrAD,$mngrOU,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
+param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$email,$empID,$empLU,$empVLD,$givenName,$NAMEfirst,$jobTitle,$3cx,$mngrID,$mngrAD,$Phone,$sn,$NAMElast,$mName,$NAMEmiddle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userIDa,$Zip)
     $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
     $City="%city%"
     $cReason="%changeReason%"
     $Dept="%dept%"
         $Office=Switch($Dept){
-                '*******'{'*******'}
-                '*******'{'*******'}
-                default{"%office%"}
-                }
+            '*******'{'*******'}
+            '*******'{'*******'}
+            '*******'{'*******'}
+            default{"%office%"}
+        }
             $DC=IF($Office -eq '*******'){'*******'
                 }elseIF($Office -eq '*******'){'*******'
-            }
-            $Lat=IF($Office -like "*thern DC" -Or "%jobTitle%" -like "IT Support*"){"******* $EaglePW"
-                }else{'N/A'
-            }
-            $Lat2=IF($Office -like "*thern DC" -Or "%jobTitle%" -like "IT Support*"){'*******'
-                }else{''
-            }
+                }
+            $Lat=IF($Office -like "*******" -Or "%jobTitle%" -like "*******"){
+                    "Create Latitude/PathGuide account, Password $EaglePW"
+                }else{'N/A'}
+            $Lat2=IF($Office -like "*******" -Or "%jobTitle%" -like "*******"){
+                    'Latitude will be same as Eagle/POS, please reach out if unable to login.'
+                }else{''}
         $OUa=Switch($Dept){
+                '*******'{'*******'}
                 '*******'{'*******'}
                 '*******'{'*******'}
                 default{$Dept}
             }
-            $OU=IF($Office -eq '*******'){"$OUa*******"
-                }else{"$Office*******"
-            }
+            $OU=IF($Office -eq '*******'){
+                    "$OUa*******"
+                }else{
+                    "$Office*******"
+                }
     $DOB="%DOB%"
     $DOH="%DateOfHire%"
     $email="%email%"
     $empID="%empID%"
-        $empVLD=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty employeeID
+        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
+            $empVLD=$empLU | Select-Object -ExpandProperty employeeID
     $givenName="%NAMEfirst%"
         $NAMEfirst=$givenname.substring(0,1).toupper()+$givenname.substring(1).tolower()
     $jobTitle="%jobTitle%"
@@ -44,33 +49,37 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
                 "%MngrID%"
             }else{
                 Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
-    }
-        $mngrAD=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty SamAccountName
-        $mngrOU=Get-ADuser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty distinguishedName
-        $Phone=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties * | Select-Object -ExpandProperty extensionAttribute12
+            }
+            $mngrLU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
+                $mngrAD=$mngrLU | Select-Object -ExpandProperty SamAccountName
+                $Phone=$mngrLU | Select-Object -ExpandProperty extensionAttribute12
     $sn="%NAMElast%"
         $NAMElast=$sn.substring(0,1).toupper()+$sn.substring(1).tolower()
-    $mName=IF("%NAMEmiddle%" -eq ''){$null
-            }else{"%NAMEmiddle%".substring(0,1).toupper()+"%NAMEmiddle%".substring(1).tolower()
-    }
+    $mName=IF("%NAMEmiddle%" -eq ''){
+                $null
+            }else{
+                "%NAMEmiddle%".substring(0,1).toupper()+"%NAMEmiddle%".substring(1).tolower()
+            }
         $NAMEmiddle=$mName[0]
-        $NAMEfull=IF($null -eq $NAMEmiddle){"$NAMEfirst $NAMElast"
-                }else{"$NAMEfirst $NAMEmiddle $NAMElast"
-        }
+        $NAMEfull=IF($null -eq $NAMEmiddle){
+                    "$NAMEfirst $NAMElast"
+                }else{
+                    "$NAMEfirst $NAMEmiddle $NAMElast"
+                }
     $prefName="%prefName%".substring(0,1).toupper()+"%prefName%".substring(1).tolower()
         $displayName="$prefName $NAMElast"
     $State="%state%"
-        $POS=IF($State -eq 'MT'){'POSMT'
-            }else{'POS'
-        }
+        $POS=IF($State -eq 'MT'){'POSMT'}else{'POS'}
     $storeID="%storeID%"
     $Street="%streetAddress%"
-    $userIDa=IF("%userID%" -like '*******'){[string]"%userID%".Split('@')[0..("%userID%".Split('@').count-2)]
-            }else{"%userID%"
-    }
+    $userIDa=IF("%userID%" -like '********'){
+                [string]"%userID%".Split('@')[0..("%userID%".Split('@').count-2)]
+            }else{
+                "%userID%"
+            }
     $Zip="%postalCode%"
 
-#Eagle ID creation and validation, utilizing initials (If taken a variation containing letters from fullName)
+#Eagle ID creation and validation
 $NAMEfirstScrb=$NAMEfirst -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
 $NAMElastScrb=$NAMElast -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
 IF($null -ne $NAMEmiddle){
@@ -93,10 +102,12 @@ IF($null -ne $NAMEmiddle){
     $eA10_d=$eA10_d.toupper()
     $eA10_e=$NAMEfirstScrb[0]+$NAMEfirstScrb[1]+$NAMEfirstScrb[2]+$NAMElastScrb[0]
     $eA10_e=$eA10_e.toupper()
+
 IF($eA10_e -ne ''){
-        $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_e}
+    $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eA10_e}
     IF($eA10user){
-    }else{$eA10=$eA10_e
+    }else{
+        $eA10=$eA10_e
     }
 }
 IF($eA10_d -ne ''){
@@ -124,12 +135,12 @@ IF($eA10_a -ne ''){
     }
 }
 
-#UserID test and validation, IF userID is not provided one will be created
-$NAMEf=$NAMEfirstScrb[0]
+#IF email is not provided / UserID test and validation
 IF($email -eq '' -or $userID -eq ''){
     $userIDa="$NAMEfirstScrb.$NAMElastScrb"
     $hrNum='1'
 }
+$NAMEf=$NAMEfirstScrb[0]
         $testA=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDa*"} | Select-Object -ExpandProperty Enabled
     $userIDb="$NAMEfirstScrb.$NAMEmiddle.$NAMElastScrb"
         $testB=Get-ADUser -Filter {proxyAddresses -like "smtp:$userIDb*"} | Select-Object -ExpandProperty Enabled
@@ -160,85 +171,83 @@ IF($testA -ne 'True' -AND $userIDa.length -gt 20){
     IF($hrNum -eq '1'){$hrNum='1'}else{$hrNum='0'}
 }
 
+
 #IF account is disabled enable update SAMAccount if needed, else create a new account
-$PWord='*******'
-forEach($user in $userID){
-    IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
-        $userIDtst=Get-ADUser -Filter {employeeID -eq $empID} | Select-Object -ExpandProperty SAMAccountName
-            IF($userID -ne $userIDtst){
-                Set-ADUser $user -remove @{ProxyAddresses="SMTP:$userIDtst*******"}
-                Set-ADUser $user -add @{ProxyAddresses="SMTP:$email,smtp:$userIDtst*******" -split ","}
-                Set-ADUser $user -replace @{
-                    mail=$email;
-                    mailNickname=$userID;
-                    sAMAccountName=$userID;
-                    sn=$NAMElast;
-                    targetAddress="SMTP:$userID*******";
-                    userPrincipalName=$email
-                }
-                $grID="$userIDtst*******"
-            }else{
-                $grID="$userID*******"
-            }
-        $badProxies=Get-ADUser $user -Properties * | Select-Object -ExpandProperty proxyAddresses |
-                    Where-Object{($_ -match '*******') -or
-                                ($_ -match '*******') -or
-                                ($_ -match '*******') -or
-                                ($_ -match '*******')
-                    }
-            IF($badProxies){
-                forEach($proxy in $badProxies){
-                    Set-ADUser $userID -remove @{ProxyAddresses=$proxy}
-                }
-            }
-        Set-ADUser $user -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails
-        Set-ADUser $user -description $null
-        Set-ADUser $user -replace @{
-            displayName=$displayName;
-            givenName=$prefName
+$PWord="$eA10@Farm-$storeID"
+IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
+    $userIDtst=$empLU | Select-Object -ExpandProperty SAMAccountName
+    IF($userID -ne $userIDtst){
+        Set-ADUser $empLU -remove @{ProxyAddresses="SMTP:$userIDtst*******"}
+        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email,smtp:$userIDtst*******" -split ","}
+        Set-ADUser $empLU -replace @{
+            mail=$email;
+            mailNickname=$userID;
+            sAMAccountName=$userID;
+            sn=$NAMElast;
+            targetAddress="SMTP:$userID*******";
+            userPrincipalName=$email
         }
-        $DN=Get-ADUser $user -Properties * | Select-Object -ExpandProperty distinguishedName
-            Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
-    }else{
-        New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $NAMElast -samaccountname $userID -UserPrincipalName $email -EmailAddress $email
-        Set-ADUser $user -add @{ProxyAddresses="SMTP:$email"}
-        $grID="$userID*******"
+        $grID="$userIDtst*******"
+    }else{$grID="$userID*******"}
+    $badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |`
+                Where-Object{($_ -match '*******') -or
+                            ($_ -match '*******') -or
+                            ($_ -match '*******') -or
+                            ($_ -match '*******')
+                }
+    IF($badProxies){
+        forEach($proxy in $badProxies){
+            Set-ADUser $empLU -remove @{ProxyAddresses=$proxy}
+        }
     }
-
+    Set-ADUser $empLU -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails
+    Enable-ADAccount $empLU
+    Set-ADUser $empLU -description $null
+    Set-ADUser $empLU -replace @{
+        displayName=$displayName;
+        givenName=$prefName
+    }
+    $DN=$empLU | Select-Object -ExpandProperty distinguishedName
+        Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
+}else{
+    New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $NAMElast -samaccountname $userID -UserPrincipalName $email -EmailAddress $email -EmployeeID $empID
     Start-Sleep -s 15
-
-    Set-ADAccountPassword $user -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)
-    Set-ADUser $user -ChangePasswordAtLogon $true
-    Set-ADUser $user -replace @{
-        c='US';
-        company="*******";
-        department=$Dept;
-        employeeID=$empID;
-        extensionAttribute1=$DOB;
-        extensionAttribute2=$DOH;
-        extensionAttribute4=$jobTitle;
-        extensionAttribute5=$Office;
-        extensionAttribute6=$mngrAD;
-        extensionAttribute10=$eA10;
-        extensionAttribute12=$Phone;
-        homePhone=$Phone;
-        l=$city;
-        manager=$mngrOU;
-        physicalDeliveryOfficeName=$Office;
-        postalCode=$Zip;
-        st=$State;
-        streetAddress=$Street;
-        telephoneNumber=$Phone;
-        title=$jobTitle;
-        initials=$eA10
-    }
-    IF($null -ne $NAMEmiddle){
-        Set-ADUser $user -replace @{middleName=$NAMEmiddle}
-    }
-    Enable-ADAccount $User
-    Get-ADUser $user | Move-ADObject -TargetPath "$OU*******"
-    $userOU=Get-ADUser $user -Properties * | Select-Object -ExpandProperty distinguishedName
+    $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
+        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email"}
+    $grID="$userID*******"
 }
+
+Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)
+Set-ADUser $empLU -ChangePasswordAtLogon $true
+Set-ADUser $empLU -replace @{
+    c='US';
+    company="*******";
+    department=$Dept;
+    employeeID=$empID;
+    extensionAttribute1=$DOB;
+    extensionAttribute2=$DOH;
+    extensionAttribute4=$jobTitle;
+    extensionAttribute5=$Office;
+    extensionAttribute6=$mngrAD;
+    extensionAttribute10=$eA10;
+    extensionAttribute12=$Phone;
+    homePhone=$Phone;
+    l=$city;
+    manager=$mngrOU;
+    physicalDeliveryOfficeName=$Office;
+    postalCode=$Zip;
+    st=$State;
+    streetAddress=$Street;
+    telephoneNumber=$Phone;
+    title=$jobTitle;
+    initials=$eA10
+}
+IF($null -ne $NAMEmiddle){
+    Set-ADUser $empLU -replace @{middleName=$NAMEmiddle}
+}
+Enable-ADAccount $empLU
+$empLU | Move-ADObject -TargetPath "$OU*******"
+$userOU=$empLU | Select-Object -ExpandProperty distinguishedName
 
 #Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
 Switch($jobTitle){
@@ -273,7 +282,7 @@ $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "
 $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
 $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
 $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
+$Smgr=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
 
 IF($Office -ne 'Admin'){
     $eMGR=Switch($Dept){
