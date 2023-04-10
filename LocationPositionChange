@@ -8,9 +8,9 @@ param($EaglePW,$ChangeType,$Dept,$Office,$DC,$Lat,$OUa,$OU,$email,$empID,$empLU,
                 '*******'{'*******'}
                 default{"%office%"}
                 }
-            $DC=IF($Office -eq 'Nothern DC'){'NDC'
-                }elseIF($Office -eq 'Southern DC'){'SDC'}
-            $Lat=IF($Office -like "*thern DC" -Or "%jobTitle%" -like "IT Support*"){
+            $DC=IF($Office -eq '*******'){'*******'
+                }elseIF($Office -eq '*******'){'*******'}
+            $Lat=IF($Office -like "*******" -Or "%jobTitle%" -like "*******"){
                     "Create Latitude/PathGuide account, Password $EaglePW"
                 }else{
                     'N/A'
