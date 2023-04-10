@@ -264,7 +264,7 @@ Switch($jobTitle){
         $MS='n/a'}
     '*******'{
         $Egl="$POS"
-        $MS=IF($Office -eq '*******'){"$Office ******* / *******"}else{"$Office *******"}}
+        $MS=IF($Office -eq '*******'){"$Office*******/*******"}else{"$Office*******"}}
     '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
         $Egl="******* / $POS"
         $MS='n/a'}
