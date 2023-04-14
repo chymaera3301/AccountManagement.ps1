@@ -24,10 +24,10 @@ IF($Groups -eq ''){                                                         #Rem
 <#---------------------------------------------------------------------------------------------
 |This part added due to issues with rehiring employees that still have connections to exchange|
 ---------------------------------------------------------------------------------------------#>
-$badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |`        #Gather all bad proxies associated with prior exchange system
-            Where-Object{($_ -match '*******') -or`
-                        ($_ -match '*******') -or`
-                        ($_ -match '*******') -or`
+$badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |         #Gather all bad proxies associated with prior exchange system
+            Where-Object{($_ -match '*******') -or
+                        ($_ -match '*******') -or
+                        ($_ -match '*******') -or
                         ($_ -match '*******')
             }
 IF($badProxies){                                                            #Remove each bad proxy that was gathered, if any were grabbed from search
