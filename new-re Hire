@@ -151,6 +151,7 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
             targetAddress="SMTP:$userID*******";
             userPrincipalName=$email
         }
+        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
         $grID="$userIDtst*******"
     }else{$grID="$userID*******"}
     $badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |`        #Gather all bad proxies associated with prior exchange system
