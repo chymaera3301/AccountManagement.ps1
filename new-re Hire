@@ -95,7 +95,7 @@ IF($null -ne $middle){#Generate different initials if middle initials exist or n
     $eA10_d=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toupper()     #ex. JOAP
     $eA10_e=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toupper()     #ex. JOHP
 
-$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create an Object, containing possible initials. Ordered from least to most preferred option
+$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create an Array, containing possible initials. Ordered from least to most preferred option
 
 forEach($eID in $eA10users){                                            #Check AD if initials are already in use
     IF($null -ne $eID){
