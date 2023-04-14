@@ -12,10 +12,10 @@
                 $userIDo=$empLU | Select-Object -ExpandProperty SAMAccountName
                 $OU=$empLU | Select-Object -ExpandProperty distinguishedName
         $office='%office%'
-        $gn='%NAMEfirst%'
+        $gn='%gn%'
             $gn=$gn.substring(0,1).toupper()+$gn.substring(1).tolower()                                                     #Ensures first initial is uppercase
             $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-        $sn="%NAMElast%"                                                                                                    #ex. appleseed / apple-seed
+        $sn="%$sn%"                                                                                                    #ex. appleseed / apple-seed
             IF($sn -contains '-'){
                 $sn1=[string]$sn.Split('-')[0].substring(0,1).toupper()+[string]$sn.Split('-')[0].substring(1).tolower()    #ex. Apple
                 $sn2=[string]$sn.Split('-')[1].substring(0,1).toupper()+[string]$sn.Split('-')[1].substring(1).tolower()    #ex. Seed
@@ -124,7 +124,7 @@
 #Part two, updates username and set proxies
 #Part two runs after business hours to prevent access hours while the employee is not working
 
-    param($email,$empID,$empLU,$eA10,$NAMEfirstO,$NAMElastO,$Office,$3cx,$userIDo,$NAMEfirst,$NAMElast,$NAMEmiddle,$userID)
+    param($email,$empID,$empLU,$eA10,$Office,$3cx,$userIDo,$userID)
         $email='%email%'
         $empID='%empID%'
             $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
