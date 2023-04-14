@@ -64,13 +64,15 @@ param($EaglePW,$ChangeType,$Dept,$Office,$DC,$Lat,$OUa,$OU,$email,$empID,$empLU,
     $Street="%street%"
     $Zip="%postalCode%"
     $userID="%userID%"
-        $Groups=(Get-ADPrincipalGroupMembership -Identity $userID | Select-Object -ExpandProperty SAMAccountName) -ne '*******'
+        $Groups=(Get-ADPrincipalGroupMembership $empLU | Select-Object -ExpandProperty SAMAccountName) -ne '*******'
                 IF($Dept -eq '*******' -OR $Dept -eq $deptO){
                 }elseIF($Groups -ne ''){
-                    Remove-ADPrincipalGroupMembership -Identity $userID -MemberOf $Groups -Confirm:$false
+                    Remove-ADPrincipalGroupMembership $empLU -MemberOf $Groups -Confirm:$false
                 }
 
-#Update Profile
+<#--------------------------------------------------------------------------
+|Transfers and Position changes are updated the same, refresh Local AD info|
+--------------------------------------------------------------------------#>
 $empLU | Move-ADObject -TargetPath "$OU*******"
 Set-ADUser $empLU -replace @{`
     department=$Dept;`
@@ -88,7 +90,9 @@ Set-ADUser $empLU -replace @{`
     title=$jobTitle
 }
 
-#Title based access; AD Global Groups automated, create a txt file to import specified access into a ticket
+<#---------------------------------------------------------------------------------------------------------
+|Add AD Global Groups associated with job title, create notes for access that requires manual intervention|
+---------------------------------------------------------------------------------------------------------#>
 Switch($jobTitle){
     #Back Office
     '*******'{Get-ADUser -Filter * -SearchBase "$office*******" -Properties * | ForEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
@@ -116,20 +120,26 @@ Switch($jobTitle){
         $Egl='Position not listed in script. Compare with similar title and/or reach out to Manager'
         $MS='Compare with similar title and/or reach out to Manager (Azure and Local AD)'}}
 
-#Email list
-    $Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-    $Smgr=Get-ADUser -Filter {employeeID -eq $mngrID} | Select-Object -ExpandProperty UserPrincipalName
-    IF($Office -ne 'Admin'){
-        $eMGR=Switch($Dept){
-                'Clothing'{"$Amgr;$Bkpr;$Cmgr;$Smgr"}
-                'Sporting Goods'{"$Amgr;$Bkpr;$SGDm;$Smgr"}
-                default{"$Amgr;$Bkpr;$Smgr"}}
-    }else{$eMGR=$Smgr}
+<#---------------------------------------------------------------------------------------------------------------------------
+|Gather emails for Asst Manager(s), Bookkeeper, Clothing Manager, Sporting Goods Manager, and Store/Home Office Dept Manager|
+---------------------------------------------------------------------------------------------------------------------------#>
+$Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Smgr=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
+IF($Office -ne 'Admin'){
+    $eMGR=Switch($Dept){
+            'Clothing'{"$Amgr;$Bkpr;$Cmgr;$Smgr"}           #If employee is in Clothing then include Clothing Manager
+            'Sporting Goods'{"$Amgr;$Bkpr;$SGDm;$Smgr"}     #If employee is in Sporting Goods then include SGD Manager
+            default{"$Amgr;$Bkpr;$Smgr"}}                   #If employee is not in Clothing or Sporting Goods, just send to Asst Manager(s), Bookkeeper, and Store Manager
+}else{
+    $eMGR=$Smgr                                             #If employee is not a Store Employee, just send to the provided Manager
+}
 
-#Create JSON
+<#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|Create JSON array that will be parsed by Power Automate Desktop for use with generating Eagle account and passing data to an email for Help Desk and users in generated email list|
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#>
 $JSON=[pscustomobject]@{
     eagleAR=$Egl
     eagleID=$eA10
