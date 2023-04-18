@@ -95,7 +95,7 @@ IF($null -ne $middle){#Generate different initials if middle initials exist or n
     $eA10_d=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toupper()     #ex. JOAP
     $eA10_e=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toupper()     #ex. JOHP
 
-$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create an Array, containing possible initials. Ordered from least to most preferred option
+$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create an Object, containing possible initials. Ordered from least to most preferred option
 
 forEach($eID in $eA10users){                                            #Check AD if initials are already in use
     IF($null -ne $eID){
@@ -128,8 +128,9 @@ forEach($user in $userIDs){
             }elseIF($userID.length -gt 20 -AND $hrNum -ne '1'){$hrNum='2'       #HR provided email that exceeded 20 characters or in use
             }else{$hrNum='0'                                                    #No issues with HR provided email
         }
-        $userID=$user
-        $email="$userID@murdochs.com"
+        $userID=$user                                                           #Set variable, SAMAccountName
+        $email="$userID*******"                                                 #Set variable, Email|mail|UPN
+        $grID=$email                                                            #Set variable, Docebo username
     }
 }
 
@@ -137,13 +138,13 @@ forEach($user in $userIDs){
 <#------------------------------------------------------------------------------------
 |IF account is disabled enable update SAMAccount if needed, else create a new account|
 ------------------------------------------------------------------------------------#>
-$PWord="*******"                                                   #Generate Password based on generated initials and Store ID
+$PWord="*******"                                                                                        #Generate Password based on generated initials and Store ID
 IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
-    $userIDtst=$empLU | Select-Object -ExpandProperty SAMAccountName
-    IF($userID -ne $userIDtst){
-        Set-ADUser $empLU -remove @{ProxyAddresses="SMTP:$userIDtst*******"}
-        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email,smtp:$userIDtst*******" -split ","}
-        Set-ADUser $empLU -replace @{
+    $userIDtst=$empLU | Select-Object -ExpandProperty SAMAccountName                                    #Search for a pre-existing account and attach to variable, grab SAMAccountName
+    IF($userID -ne $userIDtst){                                                                         #IF SAMAccountName is different than what HR provided update SAMAccountName
+        Set-ADUser $empLU -remove @{ProxyAddresses="SMTP:$userIDtst*******"}                            #Remove old proxy
+        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email,smtp:$userIDtst*******" -split ","}        #Set new email as default and old as secondary proxy
+        Set-ADUser $empLU -replace @{                                                                   #Update account to new email and SAMAccountName
             mail=$email;
             mailNickname=$userID;
             sAMAccountName=$userID;
@@ -151,21 +152,21 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
             targetAddress="SMTP:$userID*******";
             userPrincipalName=$email
         }
-        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-        $grID="$userIDtst*******"
+        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                 #Update variable, previously attached object changed
+        $grID="$userIDtst@murdochs.com"                                                                 #Update variable, Docebo using old username/email
     }else{$grID="$userID*******"}
-    $badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |`        #Gather all bad proxies associated with prior exchange system
+    $badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |                                 #Gather all bad proxies associated with prior exchange system
                 Where-Object{($_ -match '*******') -or
                             ($_ -match '*******') -or
                             ($_ -match '*******') -or
                             ($_ -match '*******')
                 }
     IF($badProxies){
-        forEach($proxy in $badProxies){                                         #Remove each bad proxy that was gathered from search
+        forEach($proxy in $badProxies){                                                                 #Remove each bad proxy that was gathered from search
             Set-ADUser $empLU -remove @{ProxyAddresses=$proxy}
         }
     }
-    Set-ADUser $empLU -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails
+    Set-ADUser $empLU -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails    #Clear attributes associated with prior exchange system
     Enable-ADAccount $empLU
     Set-ADUser $empLU -description $null
     Set-ADUser $empLU -replace @{
@@ -174,17 +175,17 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
     }
     $DN=$empLU | Select-Object -ExpandProperty distinguishedName
         Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
-}else{
+}else{                                                                                                  #IF account does not exist and not a rehie, then create a new account
     New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $NAMElast -samaccountname $userID -UserPrincipalName $email -EmailAddress $email -EmployeeID $empID -Company "*******" -Country 'US'
     Start-Sleep -s 15
-    $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email"}
+    $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                     #Update variable, new account has been created
+        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email"}                                          #Add proxy to new account
     $grID="$userID*******"
 }
 
-Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)
+Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)   #Set password for account (New or Reactivated)
 Set-ADUser $empLU -ChangePasswordAtLogon $true -City $City -Department $Dept -manager $mngrAD -office $Office -PostalCode $Zip -state $State -streetAddress $Street -title $jobTitle
-Set-ADUser $empLU -replace @{
+Set-ADUser $empLU -replace @{                                                                          #Update account details to current
     extensionAttribute1=$DOB;
     extensionAttribute2=$DOH;
     extensionAttribute4=$jobTitle;
@@ -196,12 +197,12 @@ Set-ADUser $empLU -replace @{
     telephoneNumber=$Phone;
     initials=$eA10
 }
-IF($null -ne $NAMEmiddle){
+IF($null -ne $NAMEmiddle){                                                                              #Add employee's middle name if it exists
     Set-ADUser $empLU -replace @{middleName=$NAMEmiddle}
 }
-Enable-ADAccount $empLU
-$empLU | Move-ADObject -TargetPath "$OU*******"
-$userOU=$empLU | Select-Object -ExpandProperty distinguishedName
+Enable-ADAccount $empLU                                                                                 #Mark account as enabled
+$empLU | Move-ADObject -TargetPath "$OU*******"                                                         #Move to location associated OU
+$userOU=$empLU | Select-Object -ExpandProperty distinguishedName                                        #Grab users OU, for use with Manager Roles
 
 <#---------------------------------------------------------------------------------------------------------
 |Add AD Global Groups associated with job title, create notes for access that requires manual intervention|
