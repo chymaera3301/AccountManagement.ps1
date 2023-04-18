@@ -1,21 +1,21 @@
 param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$email,$empID,$empLU,$empVLD,$gn,$jobTitle,$3cx,$mngrID,$mngrAD,$Phone,$sn,$middle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userID,$Zip)
     $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
-    $City="%city%"
-    $cReason="%changeReason%"
-    $Dept="%dept%"
+    $City="%variable%"
+    $cReason="%variable%"
+    $Dept="%variable%"
         $Office=Switch($Dept){
             '*******'{'*******'}
             '*******'{'*******'}
             '*******'{'*******'}
-            default{"%office%"}
+            default{"%variable%"}
         }
             $DC=IF($Office -eq '*******'){'*******'
                 }elseIF($Office -eq '*******'){'*******'
                 }
-            $Lat=IF($Office -like "*******" -Or "%jobTitle%" -like "*******"){
+            $Lat=IF($Office -like "*******" -Or "%variable%" -like "*******"){
                     "Create Latitude/PathGuide account, Password $EaglePW"
                 }else{'N/A'}
-            $Lat2=IF($Office -like "*******" -Or "%jobTitle%" -like "*******"){
+            $Lat2=IF($Office -like "*******" -Or "%variable%" -like "*******"){
                     'Latitude will be same as Eagle/POS, please reach out if unable to login.'
                 }else{''}
         $OUa=Switch($Dept){
@@ -29,27 +29,27 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
                 }else{
                     "$Office*******"
                 }
-    $DOB="%DOB%"
-    $DOH="%DateOfHire%"
-    $email="%email%"
-    $empID="%empID%"
+    $DOB="%variable%"
+    $DOH="%variable%"
+    $email="%variable%"
+    $empID="%variable%"
         $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
             $empVLD=$empLU | Select-Object -ExpandProperty employeeID
-    $gn="%NAMEfirst%"
+    $gn="%variable%"
         $gn=$gn.substring(0,1).toupper()+$gn.substring(1).tolower()                                                     #Ensures first initial is uppercase
             $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
-    $jobTitle="%jobTitle%"
+    $jobTitle="%variable%"
         $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension) | IP phone = Extension | extensionAttribute13 = Full number (DID)'
             }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){"Update $jobTitle extension in $Office, if one exists"
             }else{'N/A'
             }
-    $mngrID=IF("%MngrID%" -ne ''){"%MngrID%"
+    $mngrID=IF("%variable%" -ne ''){"%variable%"
             }else{Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
             }
         $mngrLU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
             $mngrAD=$mngrLU | Select-Object -ExpandProperty SamAccountName
             $Phone=$mngrLU | Select-Object -ExpandProperty extensionAttribute12
-    $sn="%NAMElast%"                                                                                                    #ex. appleseed / apple-seed
+    $sn="%variable%"                                                                                                    #ex. appleseed / apple-seed
         IF($sn -contains '-'){
             $sn1=[string]$sn.Split('-')[0].substring(0,1).toupper()+[string]$sn.Split('-')[0].substring(1).tolower()    #ex. Apple
             $sn2=[string]$sn.Split('-')[1].substring(0,1).toupper()+[string]$sn.Split('-')[1].substring(1).tolower()    #ex. Seed
@@ -61,25 +61,25 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
             $sn=$sn.substring(0,1).toupper()+$sn.substring(1).tolower()                                                 #ex. Appleseed
             $snScrb=$sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                          #Removes special characters
         }
-    $middle=IF("%NAMEmiddle%" -eq ''){$null                                                                             #Leave middle initial $null, if doesn't exist
-            }else{"%NAMEmiddle%".toupper()[0]                                                                           #Grab only first initial and uppercase, if exists
+    $middle=IF("%variable%" -eq ''){$null                                                                               #Leave middle initial $null, if doesn't exist
+            }else{"%variable%".toupper()[0]                                                                             #Grab only first initial and uppercase, if exists
             }
         $NAMEfull=IF($null -eq $middle){"$gn $sn"
                 }else{"$gn $middle $sn"
                 }
-    $prefName="%prefName%".substring(0,1).toupper()+"%prefName%".substring(1).tolower()                                 #Ensures first initial is uppercase
+    $prefName="%variable%".substring(0,1).toupper()+"%variable%".substring(1).tolower()                                 #Ensures first initial is uppercase
         $displayName="$prefName $sn"
-    $State="%state%"
+    $State="%variable%"
         $POS=IF($State -eq 'MT'){'POSMT'}else{'POS'}
-    $storeID="%storeID%"
-    $Street="%streetAddress%"
-    $userID=IF("%userID%" -eq ''){
+    $storeID="%variable%"
+    $Street="%variable%"
+    $userID=IF("%variable%" -eq ''){
                     $userID=$gnScrb+'.'+$snScrb
                     $email="$userID@murdochs.com"
                     $hrNum='1'
-                }else{"%userID%"
+                }else{"%variable%"
             }
-    $Zip="%postalCode%"
+    $Zip="%variable%"
 
 <#---------------------------------------------------------------------------------
 |Eagle ID creation and validation, utilizing initials from First, Middle, and Last|
@@ -237,10 +237,10 @@ Switch($jobTitle){
 <#---------------------------------------------------------------------------------------------------------------------------
 |Gather emails for Asst Manager(s), Bookkeeper, Clothing Manager, Sporting Goods Manager, and Store/Home Office Dept Manager|
 ---------------------------------------------------------------------------------------------------------------------------#>
-$Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
 $Smgr=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
 IF($Office -ne 'Admin'){
     $eMGR=Switch($Dept){
