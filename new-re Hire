@@ -134,7 +134,6 @@ forEach($user in $userIDs){
     }
 }
 
-
 <#------------------------------------------------------------------------------------
 |IF account is disabled enable update SAMAccount if needed, else create a new account|
 ------------------------------------------------------------------------------------#>
