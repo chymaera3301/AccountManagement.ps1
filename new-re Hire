@@ -183,6 +183,9 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
     $grID="$userID*******"
 }
 
+<#--------------------------------------------------
+|Update account data after reactivation or creation|
+--------------------------------------------------#>
 Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)   #Set password for account (New or Reactivated)
 Set-ADUser $empLU -ChangePasswordAtLogon $true -City $City -Department $Dept -manager $mngrAD -office $Office -PostalCode $Zip -state $State -streetAddress $Street -title $jobTitle
 Set-ADUser $empLU -replace @{                                                                          #Update account details to current
