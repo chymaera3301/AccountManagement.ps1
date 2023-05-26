@@ -1,96 +1,27 @@
-param($city,$dept,$office,$OUa,$OU,$email,$empID,$empLU,$OfficeO,$jobTitle,$leaveStatus,$mngrID,$mngrLU,$mngrAD,$Phone,$State,$POS,$storeID,$Street,$time,$Zip)
-    $city='%variable%'
-    $dept="%variable%"
-        $Office=Switch($Dept){
-            '*******'{'*******'}
-            '*******'{'*******'}
-            '*******'{'*******'}
-            default{"%variable%"}
-            }
-        $OUa=Switch($Dept){
-            '*******'{'*******'}
-            '*******'{'*******'}
-            '*******'{'*******'}
-            default{$Dept}
-            }
-            $OU=IF($Office -eq '*******'){
-                        "$OUa*******"
-                    }else{
-                        "$Office*******"
-                }
-    $email="%variable%"
-    $empID='%variable%'
+param($empID,$empLU,$dept,$jobTitle,$office,$userID,$leaveStatus,$time)
+    $empID="%empID%"
         $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-            $OfficeO=$empLU  | Select-Object -ExpandPropert physicalDeliveryOfficeName
-    $jobTitle="%variable%"
-    $leaveStatus="%variable%"
-    $mngrID=IF("%variable%" -ne ''){"%variable%"
-            }elseIF($office -ne 'Admin'){
-                Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
-            }
-        $mngrLU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
-            $mngrAD=$mngrLU | Select-Object -ExpandProperty SamAccountName
-            $Phone=$mngrLU | Select-Object -ExpandProperty extensionAttribute12
-    $State="%variable%"
-        $POS=IF($State -eq 'MT'){'POSMT'}else{'POS'}
-    $storeID="%variable%"
-    $Street="%variable%"
-    $time="%variable%"
-    $Zip="%variable%"
+            $dept=$empLU | Select-Object -ExpandProperty department
+            $jobTitle=$empLU | Select-Object -ExpandProperty title
+            $office=$empLU | Select-Object -ExpandProperty physicalDeliveryOfficeName
+            $userID=$empLU | Select-Object -ExpandProperty SamAccountName
+    $leaveStatus="%leaveStatus%"
+    $time="%EffectiveDate%"
 
-IF($leaveStatus -eq 'Returning'){                                                                           #IF returning, update to current account data
-    Set-ADUser $empLU -clear description
-    Enable-ADAccount $empLU
-    Set-ADUser $empLU -replace @{
-        department=$Dept;
-        extensionAttribute4=$jobTitle;
-        extensionAttribute5=$Office;
-        extensionAttribute6=$mngrAD;
-        extensionAttribute12=$Phone;
-        homePhone=$Phone;
-        manager=$mngrOU;
-        l=$City;
-        physicalDeliveryOfficeName=$Office;
-        st=$state;
-        streetAddress=$Street;
-        telephoneNumber=$Phone;
-        title=$jobTitle
-    }
-        IF($office -ne $OfficeO){                                                                           #IF office has changed, move user to new OU
-            $empLU | Move-ADObject -TargetPath "$OU*******"
-        }
-    }elseIF($leaveStatus -eq 'On Leave'){                                                                   #IF going on LOA, mark account as On Leave and Disable AD
-        Set-ADUser $empLU -add @{description="On Leave ($time)"}
-        Disable-ADAccount $empLU
+IF($leaveStatus -eq 'Returning'){
+    Set-ADUser -Identity $userID -Description $null
+    $empLU | Enable-ADAccount
+}elseIF($leaveStatus -eq 'On Leave'){
+    Set-ADUser $empLU -add @{description="On Leave ($time)"}
+    Disable-ADAccount $empLU
 }
 
-<#----------------------------------------------------------------------------------------
-|Add AD Global Groups associated with job title, in case if changes occurred during leave|
-|As Paylocity may not always send changes while user is on LOA                           |
-----------------------------------------------------------------------------------------#>
-Switch($jobTitle){
-    #Back Office
-    '*******'{Get-ADUser -Filter * -SearchBase "$office*******" -Properties * | ForEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
-        $Egl="******* / $POS / *******"
-        $MS='n/a'}
-    '*******'{
-        $Egl="$POS / *******"
-        $MS=IF($Office -eq '*******'){'*******'}else{'*******'}}
-#Frontline
-    '*******'{
-        $Egl="$POS"
-        $MS='n/a'}
-    '*******'{
-        $Egl="$POS"
-        $MS=IF($Office -eq '*******'){"$Office ******* / *******"}else{"$Office *******"}}
-    '*******'{Add-ADPrincipalGroupMembership $empLU -MemberOf '*******'
-        $Egl="******* / $POS"
-        $MS='n/a'}
-#Home Office / Admin
-    '*******'{Add-ADPrincipalGroupMembership $empLU -MemberOf '*******','*******'
-        $Egl='*******'
-        $MS='*******'}
-#Not Listed/New Title
-    default{
-        $Egl='Position not listed in script. Compare with similar title and/or reach out to Manager'
-        $MS='Compare with similar title and/or reach out to Manager (Azure and Local AD)'}}
+<#---------------------------------------------------------------
+|Create JSON array that will be parsed by Power Automate Desktop|
+---------------------------------------------------------------#>
+$JSON=[pscustomobject]@{
+    dept=$dept
+    jobTitle=$jobTitle
+    location=$office
+}
+$JSON | ConvertTo-Json -Compress | Write-Output
