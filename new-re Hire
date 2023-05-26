@@ -84,24 +84,27 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
 <#---------------------------------------------------------------------------------
 |Eagle ID creation and validation, utilizing initials from First, Middle, and Last|
 ---------------------------------------------------------------------------------#>
-IF($null -ne $middle){#Generate different initials if middle initials exist or not
-    $eA10_a=($gnScrb[0]+$middle[0]+$snScrb[0]).toupper()                #ex. JSA
-    $eA10_c=($gnScrb[0]+$middle[0]+$snScrb[0]+$snScrb[1]).toupper()     #ex. JSAP
+IF($null -ne $middle){                                                  #Generate different initials if middle initials exist or not
+    $eA10_a=($gnScrb[0]+$middle[0]+$snScrb[0]).toUpper()                #ex. JSA
+    $eA10_c=($gnScrb[0]+$middle[0]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JSAP
 }else{
-    $eA10_a=($gnScrb[0]+$gnScrb[1]+$snScrb[0]).toupper()                #ex. JOA
-    $eA10_c=($gnScrb[0]+$snScrb[0]+$snScrb[1]+$snScrb[2]).toupper()     #ex. JAPP
+    $eA10_a=($gnScrb[0]+$gnScrb[1]+$snScrb[0]).toUpper()                #ex. JOA
+    $eA10_c=($gnScrb[0]+$snScrb[0]+$snScrb[1]+$snScrb[2]).toUpper()     #ex. JAPP
 }
-    $eA10_b=($gnScrb[0]+$snScrb[0]+$snScrb[1]).toupper()                #ex. JAP
-    $eA10_d=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toupper()     #ex. JOAP
-    $eA10_e=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toupper()     #ex. JOHP
+    $eA10_b=($gnScrb[0]+$snScrb[0]+$snScrb[1]).toUpper()                #ex. JAP
+    $eA10_d=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JOAP
+    $eA10_e=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toUpper()     #ex. JOHP
 
-$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create an Object, containing possible initials. Ordered from least to most preferred option
+$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create Array, containing possible initials. Ordered from least to most preferred option
 
 forEach($eID in $eA10users){                                            #Check AD if initials are already in use
     IF($null -ne $eID){
-        $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eID}
-        IF($eA10user){
-            }else{$eA10=$eID
+        $eA10LU1=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty employeeID
+        $eA10LU2=Get-ADUser -Filter {extensionAttribute10 -eq $eID}
+        IF($eA10LU2 -AND $eA10LU1 -ne $empID){
+            }elseIF($eA10LU2 -AND $eA10LU1 -eq $empID){                 #IF initials exist and empID matches reuse, as it's the same account
+                $eA10=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
+            }else{$eA10=$eID                                            #IF initials don't exist then continue to next loop
         }
     }
 }
@@ -109,28 +112,37 @@ forEach($eID in $eA10users){                                            #Check A
 <#----------------------------------------------------------------------------
 |Generate multiple possible userID's, in case HR provided userID is not valid|
 ----------------------------------------------------------------------------#>
-$userID_b=$gnScrb+'.'+$middle+'.'+$snScrb                           #ex. Johnny.S.AppleSeed
-$userID_c=$gnScrb[0]+'.'+$snScrb                                    #ex. J.AppleSeed
-$userID_d=$gnScrb[0]+$middle+'.'+$snScrb                            #ex. J.S.AppleSeed
+$userID_b=$gnScrb+'.'+$middle+'.'+$snScrb                               #ex. Johnny.S.AppleSeed
+$userID_c=$gnScrb[0]+'.'+$snScrb                                        #ex. J.AppleSeed
+$userID_d=$gnScrb[0]+$middle+'.'+$snScrb                                #ex. J.S.AppleSeed
 $userID_e=IF($sn -contains '-'){
-                $gnScrb+'.'+$middle+'.'+$snScrb1[0]+$snScrb2[0]     #ex. Johnny.S.AS
+                $gnScrb+'.'+$middle+'.'+$snScrb1[0]+$snScrb2[0]         #ex. Johnny.S.AS
             }else{
-                $gnScrb+'.'+$middle+'.'+$snScrb[0]                  #ex. Johnny.S.A
+                $gnScrb+'.'+$middle+'.'+$snScrb[0]                      #ex. Johnny.S.A
         }
 
-$userIDs=@($userID_e,$userID_d,$userID_c,$userID_b,$userID)
+$userIDs=@($userID_e,$userID_d,$userID_c,$userID_b,$userID)             #Create Array, containing possible usernames. Ordered from least to most preferred option
 
 forEach($user in $userIDs){
     $proxy="smtp:$user*"
-    $lookup=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty Enabled
-    IF($lookup -ne 'True' -AND $user.length -lt 20){
+        $adLU1=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty employeeID
+        $adLU2=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty Enabled
+    IF($adLU2 -ne 'True' -AND $user.length -lt 20){
         IF($hrNum -eq '1'){$hrNum='1'                                           #HR did not provide an email
             }elseIF($userID.length -gt 20 -AND $hrNum -ne '1'){$hrNum='2'       #HR provided email that exceeded 20 characters or in use
             }else{$hrNum='0'                                                    #No issues with HR provided email
         }
-        $userID=$user                                                           #Set variable, SAMAccountName
-        $email="$userID*******"                                                 #Set variable, Email|mail|UPN
-        $grID=$email                                                            #Set variable, Docebo username
+        
+        IF($adLU1 -eq $empID){
+            $userID=$empLu | Select-Object -ExpandProperty SAMAccountName           #Set variable, SAMAccountName - Duplicate Process
+            $email=$empLu | Select-Object -ExpandProperty userPrincipalName         #Set variable, Email|mail|UPN - Duplicate Process
+            $grID=$empLu | Select-Object -ExpandProperty userPrincipalName          #Set variable, Docebo username - Duplicate Process
+            $hrNum='3'
+        }else{
+            $userID=$user                                                           #Set variable, SAMAccountName
+            $email="$userID@murdochs.com"                                           #Set variable, Email|mail|UPN
+            $grID="$userID@murdochs.com"                                            #Set variable, Docebo username
+        }
     }
 }
 
