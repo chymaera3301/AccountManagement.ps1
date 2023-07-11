@@ -1,5 +1,4 @@
-param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$email,$empID,$empLU,$empVLD,$gn,$jobTitle,$3cx,$mngrID,$mngrAD,$Phone,$sn,$middle,$NAMEfull,$pName,$prefName,$displayName,$State,$POS,$storeID,$Street,$userID,$Zip)
-    $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
+param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$empVLD,$gn,$jobTitle,$3cx,$mngrID,$mngrAD,$Phone,$sn,$middle,$NAMEfull,$pName,$prefName,$displayName,$State,$storeID,$Street,$Zip)
     $City="%variable%"
     $cReason="%variable%"
     $Dept="%variable%"
@@ -9,29 +8,17 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
             '*******'{'*******'}
             default{"%variable%"}
         }
-            $DC=IF($Office -eq '*******'){'*******'
-                }elseIF($Office -eq '*******'){'*******'
-                }
-            $Lat=IF($Office -like "*******" -Or "%variable%" -like "*******"){
-                    "Create Latitude/PathGuide account, Password $EaglePW"
-                }else{'N/A'}
-            $Lat2=IF($Office -like "*******" -Or "%variable%" -like "*******"){
-                    'Latitude will be same as Eagle/POS, please reach out if unable to login.'
-                }else{''}
         $OUa=Switch($Dept){
                 '*******'{'*******'}
                 '*******'{'*******'}
                 '*******'{'*******'}
                 default{$Dept}
             }
-            $OU=IF($Office -eq '*******'){
-                    "$OUa*******"
-                }else{
-                    "$Office*******"
+            $OU=IF($Office -eq '*******'){"$OUa*******"
+                    }else{"$Office*******"
                 }
     $DOB="%variable%"
     $DOH="%variable%"
-    $email="%variable%"
     $empID="%variable%"
         $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
             $empVLD=$empLU | Select-Object -ExpandProperty employeeID
@@ -39,12 +26,15 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
         $gn=$gn.substring(0,1).toupper()+$gn.substring(1).tolower()                                                     #Ensures first initial is uppercase
             $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
     $jobTitle="%variable%"
-        $3cx=IF($Office -eq 'Admin'){'Create extension via 3CX, update Confluence (Admin Phone Extension) | IP phone = Extension | extensionAttribute13 = Full number (DID)'
-            }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){"Update $jobTitle extension in $Office, if one exists"
-            }else{'N/A'
+        $3cx=IF($Office -eq 'Admin'){
+                    'Create extension via 3CX, update Confluence (Admin Phone Extension) | IP phone = Extension | extensionAttribute13 = Full number (DID)'
+                }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){
+                    "Update $jobTitle extension in $Office, if one exists"
+                }else{'N/A'
             }
     $mngrID=IF("%variable%" -ne ''){"%variable%"
-            }else{Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
+                }elseIF($office -ne 'Admin'){
+                    Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
             }
         $mngrLU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
             $mngrAD=$mngrLU | Select-Object -ExpandProperty SamAccountName
@@ -70,48 +60,44 @@ param($EaglePW,$City,$cReason,$Dept,$Office,$DC,$Lat,$Lat2,$OUa,$OU,$DOB,$DOH,$e
     $prefName="%variable%".substring(0,1).toupper()+"%variable%".substring(1).tolower()                                 #Ensures first initial is uppercase
         $displayName="$prefName $sn"
     $State="%variable%"
-        $POS=IF($State -eq 'MT'){'POSMT'}else{'POS'}
     $storeID="%variable%"
     $Street="%variable%"
-    $userID=IF("%variable%" -eq ''){
-                    $userID=$gnScrb+'.'+$snScrb
-                    $email="$userID@murdochs.com"
-                    $hrNum='1'
-                }else{"%variable%"
-            }
     $Zip="%variable%"
 
 <#---------------------------------------------------------------------------------
 |Eagle ID creation and validation, utilizing initials from First, Middle, and Last|
 ---------------------------------------------------------------------------------#>
 IF($null -ne $middle){                                                  #Generate different initials if middle initials exist or not
-    $eA10_a=($gnScrb[0]+$middle[0]+$snScrb[0]).toUpper()                #ex. JSA
-    $eA10_c=($gnScrb[0]+$middle[0]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JSAP
+    $eA10_a=($gnScrb[0]+$middle[0]+$snScrb[0]).toupper()                #ex. JSA
+    $eA10_c=($gnScrb[0]+$middle[0]+$snScrb[0]+$snScrb[1]).toupper()     #ex. JSAP
 }else{
-    $eA10_a=($gnScrb[0]+$gnScrb[1]+$snScrb[0]).toUpper()                #ex. JOA
-    $eA10_c=($gnScrb[0]+$snScrb[0]+$snScrb[1]+$snScrb[2]).toUpper()     #ex. JAPP
+    $eA10_a=($gnScrb[0]+$gnScrb[1]+$snScrb[0]).toupper()                #ex. JOA
+    $eA10_c=($gnScrb[0]+$snScrb[0]+$snScrb[1]+$snScrb[2]).toupper()     #ex. JAPP
 }
-    $eA10_b=($gnScrb[0]+$snScrb[0]+$snScrb[1]).toUpper()                #ex. JAP
-    $eA10_d=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JOAP
-    $eA10_e=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toUpper()     #ex. JOHP
+    $eA10_b=($gnScrb[0]+$snScrb[0]+$snScrb[1]).toupper()                #ex. JAP
+    $eA10_d=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toupper()     #ex. JOAP
+    $eA10_e=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toupper()     #ex. JOHP
 
-$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create Array, containing possible initials. Ordered from least to most preferred option
+$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create an Object, containing possible initials. Ordered from least to most preferred option
 
 forEach($eID in $eA10users){                                            #Check AD if initials are already in use
     IF($null -ne $eID){
-        $eA10LU1=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty employeeID
-        $eA10LU2=Get-ADUser -Filter {extensionAttribute10 -eq $eID}
-        IF($eA10LU2 -AND $eA10LU1 -ne $empID){
-            }elseIF($eA10LU2 -AND $eA10LU1 -eq $empID){                 #IF initials exist and empID matches reuse, as it's the same account
-                $eA10=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
-            }else{$eA10=$eID                                            #IF initials don't exist then continue to next loop
+        $eA10user=Get-ADUser -Filter {extensionAttribute10 -eq $eID}
+        IF($eA10user){
+            }else{$eA10=$eID
         }
     }
 }
 
-<#----------------------------------------------------------------------------
-|Generate multiple possible userID's, in case HR provided userID is not valid|
-----------------------------------------------------------------------------#>
+<#----------------------------------------------------------------------------------------
+|Generate multiple possible userID's, in case HR provided userID is not valid or provided|
+----------------------------------------------------------------------------------------#>
+IF("%userID%" -eq ''){
+    $userID="$gnScrb.$snScrb"                                           #ex. Johnny.AppleSeed (Create if not provided)
+    $hrNum='1'
+}else{
+    $userID="%userID%"                                                  #ex. Johnny.AppleSeed (Generally what is provided)
+}
 $userID_b=$gnScrb+'.'+$middle+'.'+$snScrb                               #ex. Johnny.S.AppleSeed
 $userID_c=$gnScrb[0]+'.'+$snScrb                                        #ex. J.AppleSeed
 $userID_d=$gnScrb[0]+$middle+'.'+$snScrb                                #ex. J.S.AppleSeed
@@ -121,27 +107,26 @@ $userID_e=IF($sn -contains '-'){
                 $gnScrb+'.'+$middle+'.'+$snScrb[0]                      #ex. Johnny.S.A
         }
 
-$userIDs=@($userID_e,$userID_d,$userID_c,$userID_b,$userID)             #Create Array, containing possible usernames. Ordered from least to most preferred option
+$userIDs=@($userID_e,$userID_d,$userID_c,$userID_b,$userID)             #Create Array, containing possible usernames. Ordered from least to most preferred
 
 forEach($user in $userIDs){
     $proxy="smtp:$user*"
         $adLU1=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty employeeID
         $adLU2=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty Enabled
     IF($adLU2 -ne 'True' -AND $user.length -lt 20){
-        IF($hrNum -eq '1'){$hrNum='1'                                           #HR did not provide an email
-            }elseIF($userID.length -gt 20 -AND $hrNum -ne '1'){$hrNum='2'       #HR provided email that exceeded 20 characters or in use
-            }else{$hrNum='0'                                                    #No issues with HR provided email
+        IF($hrNum -eq '1'){$hrNum='1'                                               #HR did not provide an email
+            }elseIF($userID.length -gt 20 -AND $hrNum -ne '1'){$hrNum='2'           #HR provided email that exceeded 20 characters or in use
+            }else{$hrNum='0'                                                        #No issues with HR provided email
         }
-        
-        IF($adLU1 -eq $empID){
+        IF($adLU1 -eq $empID -AND $adLU2 -eq 'True'){
             $userID=$empLu | Select-Object -ExpandProperty SAMAccountName           #Set variable, SAMAccountName - Duplicate Process
             $email=$empLu | Select-Object -ExpandProperty userPrincipalName         #Set variable, Email|mail|UPN - Duplicate Process
             $grID=$empLu | Select-Object -ExpandProperty userPrincipalName          #Set variable, Docebo username - Duplicate Process
             $hrNum='3'
         }else{
             $userID=$user                                                           #Set variable, SAMAccountName
-            $email="$userID@murdochs.com"                                           #Set variable, Email|mail|UPN
-            $grID="$userID@murdochs.com"                                            #Set variable, Docebo username
+            $email="$userID*******"                                                 #Set variable, Email|mail|UPN
+            $grID="$userID*******"                                                  #Set variable, Docebo username
         }
     }
 }
@@ -164,21 +149,20 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
             userPrincipalName=$email
         }
         $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                 #Update variable, previously attached object changed
-        $grID="$userIDtst@murdochs.com"                                                                 #Update variable, Docebo using old username/email
+        $grID="$userIDtst*******"                                                                       #Update variable, Docebo using old username/email
     }else{$grID="$userID*******"}
-    $badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |                                 #Gather all bad proxies associated with prior exchange system
+    $badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |                                     #Gather all bad proxies associated with prior exchange system
                 Where-Object{($_ -match '*******') -or
                             ($_ -match '*******') -or
                             ($_ -match '*******') -or
                             ($_ -match '*******')
                 }
-    IF($badProxies){
-        forEach($proxy in $badProxies){                                                                 #Remove each bad proxy that was gathered from search
-            Set-ADUser $empLU -remove @{ProxyAddresses=$proxy}
+        IF($badProxies){
+            forEach($proxy in $badProxies){                                                                 #Remove each bad proxy that was gathered from search
+                Set-ADUser $empLU -remove @{ProxyAddresses=$proxy}
+            }
         }
-    }
-    Set-ADUser $empLU -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails    #Clear attributes associated with prior exchange system
-    Enable-ADAccount $empLU
+        Set-ADUser $empLU -clear MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails    #Clear attributes associated with prior exchange system
     Set-ADUser $empLU -description $null
     Set-ADUser $empLU -replace @{
         displayName=$displayName;
@@ -186,20 +170,21 @@ IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
     }
     $DN=$empLU | Select-Object -ExpandProperty distinguishedName
         Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
-}else{                                                                                                  #IF account does not exist and not a rehie, then create a new account
-    New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $NAMElast -samaccountname $userID -UserPrincipalName $email -EmailAddress $email -EmployeeID $empID -Company "*******" -Country 'US'
+    $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                         #Update variable, new account has been created
+}elseIF($cReason -ne 'Rehire'-AND $null -eq $empVLD){                                                       #IF account does not exist and not a rehie, then create a new account
+    New-ADUser -Name $NAMEfull -DisplayName $displayName -GivenName $prefName -Surname $sn -samaccountname $userID -UserPrincipalName $email -EmailAddress $email -EmployeeID $empID -Company "*******" -Country 'US'
     Start-Sleep -s 15
-    $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                     #Update variable, new account has been created
-        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email"}                                          #Add proxy to new account
-    $grID="$userID*******"
+    $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                         #Update variable, new account has been created
+        Set-ADUser $empLU -add @{ProxyAddresses="SMTP:$email"}                                              #Add proxy to new account
 }
 
 <#--------------------------------------------------
 |Update account data after reactivation or creation|
---------------------------------------------------#>
-Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)   #Set password for account (New or Reactivated)
-Set-ADUser $empLU -ChangePasswordAtLogon $true -City $City -Department $Dept -manager $mngrAD -office $Office -PostalCode $Zip -state $State -streetAddress $Street -title $jobTitle
-Set-ADUser $empLU -replace @{                                                                          #Update account details to current
+--------------------------------------------------#> 
+Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)        #Set password for account (New or Reactivated)
+Set-ADUser $empLU -ChangePasswordAtLogon $true -manager $mngrAD                                             #Set password to expire at login and set Manager
+Set-ADUser $empLU -replace @{                                                                               #Update account details to current
+    department=$Dept;
     extensionAttribute1=$DOB;
     extensionAttribute2=$DOH;
     extensionAttribute4=$jobTitle;
@@ -208,15 +193,21 @@ Set-ADUser $empLU -replace @{                                                   
     extensionAttribute10=$eA10;
     extensionAttribute12=$Phone;
     homePhone=$Phone;
+    l=$city;
+    physicalDeliveryOfficeName=$office;
+    postalCode=$Zip;
+    st=$State;
+    streetAddress=$Street;
     telephoneNumber=$Phone;
+    title=$jobTitle;
     initials=$eA10
 }
-IF($null -ne $NAMEmiddle){                                                                              #Add employee's middle name if it exists
-    Set-ADUser $empLU -replace @{middleName=$NAMEmiddle}
+IF($null -ne $middle){                                                                                      #Add employee's middle name if it exists
+    Set-ADUser $empLU -replace @{middleName=$middle}
 }
-Enable-ADAccount $empLU                                                                                 #Mark account as enabled
-$empLU | Move-ADObject -TargetPath "$OU*******"                                                         #Move to location associated OU
-$userOU=$empLU | Select-Object -ExpandProperty distinguishedName                                        #Grab users OU, for use with Manager Roles
+Enable-ADAccount $empLU                                                                                     #Mark account as enabled
+$empLU | Move-ADObject -TargetPath "$OU*******"                                                             #Move to location associated OU
+$userOU=$empLU | Select-Object -ExpandProperty distinguishedName                                            #Grab users OU, for use with Manager Roles
 
 <#---------------------------------------------------------------------------------------------------------
 |Add AD Global Groups associated with job title, create notes for access that requires manual intervention|
@@ -224,28 +215,21 @@ $userOU=$empLU | Select-Object -ExpandProperty distinguishedName                
 Switch($jobTitle){
     #Back Office
     '*******'{Get-ADUser -Filter * -SearchBase "$office*******" -Properties * | ForEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
-        $Egl="******* / $POS / *******"
         $MS='n/a'}
     '*******'{
-        $Egl="$POS / *******"
         $MS=IF($Office -eq '*******'){'*******'}else{'*******'}}
 #Frontline
     '*******'{
-        $Egl="$POS"
         $MS='n/a'}
     '*******'{
-        $Egl="$POS"
         $MS=IF($Office -eq '*******'){"$Office ******* / *******"}else{"$Office *******"}}
     '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* / $POS"
         $MS='n/a'}
 #Home Office / Admin
     '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
-        $Egl='*******'
         $MS='*******'}
 #Not Listed/New Title
     default{
-        $Egl='Position not listed in script. Compare with similar title and/or reach out to Manager'
         $MS='Compare with similar title and/or reach out to Manager (Azure and Local AD)'}}
 
 <#---------------------------------------------------------------------------------------------------------------------------
@@ -272,26 +256,23 @@ $hrNotif=Switch($hrNUm){
     0{''}
     1{'Email not provided'}
     2{'Provided UserID exceeds 20 characters or in use'}
+    3{'Duplicate'}
 }
 
 <#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 |Create JSON array that will be parsed by Power Automate Desktop for use with generating Eagle account and passing data to an email for Help Desk and users in generated email list|
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#>
 $JSON=[pscustomobject]@{
-    eagleAR=$Egl
-    eagleID=$eA10
-    eaglePW=$EaglePW
     email=$email
     eMGR=$eMGR
     ext=$3cx
+    fullName=$NAMEfull
     grID=$grID
     hrNotif=$hrNotif
     hrNum=$hrNum
-    latAR=$Lat
-    latNotif=$Lat2 
+    init=$eA10
     mngrAD=$mngrAD
     msAR=$MS
-    fullName=$NAMEfull
     pWord=$PWord
     userID=$userID 
 }
