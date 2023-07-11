@@ -114,9 +114,9 @@ forEach($user in $userIDs){
         $adLU1=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty employeeID
         $adLU2=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty Enabled
     IF($adLU2 -ne 'True' -AND $user.length -lt 20){
-        IF($hrNum -eq '1'){$hrNum='1'                                               #HR did not provide an email
-            }elseIF($userID.length -gt 20 -AND $hrNum -ne '1'){$hrNum='2'           #HR provided email that exceeded 20 characters or in use
-            }else{$hrNum='0'                                                        #No issues with HR provided email
+        IF($hrNum -eq '1'){$hrNum='1'                                               #UserID was not provided
+            }elseIF($userID.length -gt 20 -AND $hrNum -ne '1'){$hrNum='2'           #Provided UserID exceeds 20 character or in use
+            }else{$hrNum='0'                                                        #No issues with provided UserID
         }
         IF($adLU1 -eq $empID -AND $adLU2 -eq 'True'){
             $userID=$empLu | Select-Object -ExpandProperty SAMAccountName           #Set variable, SAMAccountName - Duplicate Process
