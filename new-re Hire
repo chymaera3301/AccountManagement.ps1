@@ -293,7 +293,7 @@ IF($Office -ne 'Admin'){
 $hrNotif=Switch($hrNUm){
     0{''}
     1{'Email not provided'}
-    2{'Provided UserID exceeds 20 characters or in use'}
+    2{'Provided UserID exceeds 20 characters'}
     3{'Duplicate'}
     4{"Email in use by active account, $hrFail"}
 }
