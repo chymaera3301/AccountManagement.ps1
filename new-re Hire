@@ -269,25 +269,22 @@ Switch($jobTitle){
     default{
         $MS='Compare with similar title and/or reach out to Manager (Entra and Local AD)'}}
 
-<#---------------------------------------------------------------------------------------------------------------------------
-|Gather emails for Asst Manager(s), Bookkeeper, Clothing Manager, Sporting Goods Manager, and Store/Home Office Dept Manager|
----------------------------------------------------------------------------------------------------------------------------#>
-$BKmgr=(Get-ADUser -Filter "title -eq 'Assistant Store Manager' -OR
-                            title -eq 'Bookkeeper' -OR
-                            title -eq 'Distribution Center Asst Mgr' -OR
-                            title -eq 'Retail Office Coordinator'"`
-                  -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Cmgr=(Get-ADUser -Filter "title -eq 'Clothing Manager'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$SGDm=(Get-ADUser -Filter "title -eq 'Sporting Goods Manager'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Smgr=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
+<#-------------------------------------------------------------------------
+|Gather emails for BackOffice employees and Store/Home Office Dept Manager|
+-------------------------------------------------------------------------#>
+$deptMgrs=@('Assistant Store Manager','Bookkeeper','Distribution Center Asst Mgr','Retail Office Coordinator')
+Switch($dept){
+    'Clothing'{$deptMgrs+='Clothing Manager'}
+    'Sporting Goods'{$deptMgrs+='Sporting Goods Manager'}
+    default{$deptMgrs}
+}
+$backOffice=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
 IF($Office -ne 'Admin'){
-    $eMGR=Switch($Dept){
-            'Clothing'{"$BKmgr;$Cmgr;$Smgr"}           #If employee is in Clothing then include Clothing Manager
-            'Sporting Goods'{"$BKmgr;$SGDm;$Smgr"}     #If employee is in Sporting Goods then include SGD Manager
-            default{"$BKmgr;$Smgr"}                    #If employee is not in Clothing or Sporting Goods, just send to Asst Manager(s), Bookkeeper, and Store Manager
-    }
-}else{
-    $eMGR=$Smgr                                        #If employee is not a Store Employee, just send to the provided Manager
+    $backOffice+=";"+(
+        $deptMgrs | ForEach-Object{
+            Get-ADUser -Filter "title -eq '$_'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName
+        } -join ';'
+    )
 }
 
 <#---------------------------------------------------------------------------------------------------------------------------------------
