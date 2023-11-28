@@ -27,7 +27,7 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$empVLD,$gn,
             $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                 #Removes special characters
     $jobTitle="%variable%"
         $3cx=IF($Office -eq 'Admin'){                                                                          #Create message for Extension update or creation. Email is sent in HTML (<br> = new line | <strong> = bold)
-                    'Create extension via 3CX, update Confluence (Admin Phone Extension) | IP phone = Extension | extensionAttribute13 = Full number (DID)'
+                    'Create extension via 3CX, update Confluence (Admin Phone Extension)<br><strong>Update Local AD attributes</strong><br>  <strong>-Extension =</strong> ipPhone & extensionAttribute14<br>  <strong>-Full number (DID) =</strong> extensionAttribute13'
                 }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){          #Update extension title in 3CX
                     "Update $jobTitle extension in $Office, if one exists"
                 }else{'N/A'
@@ -102,7 +102,7 @@ forEach($eID in $eA10users){                                            #Check A
 -------------------------------------------------------------------------------------#>
 IF("%userID%" -eq ''){
     $userID=$pnScrb+'.'+$snScrb                                         #ex. John.AppleSeed (Create if not provided)
-    $hrNum='1'
+    $hrNum=1
 }else{
     $userID="%userID%"                                                  #ex. John.AppleSeed (Generally what HR provides)
 }
@@ -135,9 +135,9 @@ forEach($user in $userIDs){
                 $userID=$empLU | Select-Object -ExpandProperty SAMAccountName       #Set variable, SAMAccountName - Duplicate Process
                 $email=$empLU | Select-Object -ExpandProperty userPrincipalName     #Set variable, Email|mail|UPN - Duplicate Process
                 $grID=$empLU | Select-Object -ExpandProperty userPrincipalName      #Set variable, Docebo username - Duplicate Process
-                $hrNum='3'
+                $hrNum=3
             }elseIF($adLU1 -ne $empID -AND $hrNum -eq '0'){                         #Provided UserID in use by active account, not sharing Emp ID (Different User)
-                $hrNum='4'
+                $hrNum=4
                 $hrFail=$adLU1
             }
         }else{
@@ -146,7 +146,7 @@ forEach($user in $userIDs){
             $grID="$userID@*******"                                                 #Set variable, Docebo username
         }
     }elseIF($user.length -gt 20 -AND $hrNum -eq '0'){
-        $hrNum='2'                                                                  #Provided UserID exceeds 20 character
+        $hrNum=2                                                                    #Provided UserID exceeds 20 character
     }
 }
 
@@ -250,7 +250,7 @@ $userOU=$empLU | Select-Object -ExpandProperty distinguishedName                
 |Add AD Global Groups associated with job title, create notes for access that requires manual intervention|
 ---------------------------------------------------------------------------------------------------------#>
 Switch($jobTitle){
-    #Back Office
+    #Back Office / Retail-DC
     '*******'{Get-ADUser -Filter * -SearchBase "$office*******" -Properties * | ForEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
         $MS='n/a'}
     '*******'{
@@ -267,23 +267,27 @@ Switch($jobTitle){
         $MS='*******'}
 #Not Listed/New Title
     default{
-        $MS='Compare with similar title and/or reach out to Manager (Azure and Local AD)'}}
+        $MS='Compare with similar title and/or reach out to Manager (Entra and Local AD)'}}
 
 <#---------------------------------------------------------------------------------------------------------------------------
 |Gather emails for Asst Manager(s), Bookkeeper, Clothing Manager, Sporting Goods Manager, and Store/Home Office Dept Manager|
 ---------------------------------------------------------------------------------------------------------------------------#>
-$Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%variable%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$BKmgr=(Get-ADUser -Filter "title -eq 'Assistant Store Manager' -OR
+                            title -eq 'Bookkeeper' -OR
+                            title -eq 'Distribution Center Asst Mgr' -OR
+                            title -eq 'Retail Office Coordinator'"`
+                  -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$Cmgr=(Get-ADUser -Filter "title -eq 'Clothing Manager'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName) -join ';'
+$SGDm=(Get-ADUser -Filter "title -eq 'Sporting Goods Manager'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName) -join ';'
 $Smgr=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
 IF($Office -ne 'Admin'){
     $eMGR=Switch($Dept){
-            'Clothing'{"$Amgr;$Bkpr;$Cmgr;$Smgr"}           #If employee is in Clothing then include Clothing Manager
-            'Sporting Goods'{"$Amgr;$Bkpr;$SGDm;$Smgr"}     #If employee is in Sporting Goods then include SGD Manager
-            default{"$Amgr;$Bkpr;$Smgr"}}                   #If employee is not in Clothing or Sporting Goods, just send to Asst Manager(s), Bookkeeper, and Store Manager
+            'Clothing'{"$BKmgr;$Cmgr;$Smgr"}           #If employee is in Clothing then include Clothing Manager
+            'Sporting Goods'{"$BKmgr;$SGDm;$Smgr"}     #If employee is in Sporting Goods then include SGD Manager
+            default{"$BKmgr;$Smgr"}                    #If employee is not in Clothing or Sporting Goods, just send to Asst Manager(s), Bookkeeper, and Store Manager
+    }
 }else{
-    $eMGR=$Smgr                                             #If employee is not a Store Employee, just send to the provided Manager
+    $eMGR=$Smgr                                        #If employee is not a Store Employee, just send to the provided Manager
 }
 
 <#---------------------------------------------------------------------------------------------------------------------------------------
@@ -294,11 +298,12 @@ $hrNotif=Switch($hrNUm){
     1{'Email not provided'}
     2{'Provided UserID exceeds 20 characters or in use'}
     3{'Duplicate'}
+    4{"Email in use by active account, $hrFail"}
 }
 
-<#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-|Create JSON array that will be parsed by Power Automate Desktop for use with generating Eagle account and passing data to an email for Help Desk and users in generated email list|
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#>
+<#--------------------------------------------------------------------------------------------------------------------------------------------
+|Create JSON array that will be parsed by Power Automate Desktop for passing data to an email for Help Desk and users in generated email list|
+--------------------------------------------------------------------------------------------------------------------------------------------#>
 $JSON=[pscustomobject]@{
     email=$email
     eMGR=$eMGR
@@ -311,6 +316,6 @@ $JSON=[pscustomobject]@{
     mngrAD=$mngrAD
     msAR=$MS
     pWord=$PWord
-    userID=$userID 
+    userID=$userID
 }
 $JSON | ConvertTo-Json -Compress | Write-Output
