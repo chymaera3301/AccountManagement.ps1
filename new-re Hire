@@ -20,45 +20,46 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$empVLD,$gn,
     $DOB="%variable%"
     $DOH="%variable%"
     $empID="%variable%"
-        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-            $empVLD=$empLU | Select-Object -ExpandProperty employeeID
-    $gn="%variable%"
-        $gn=$gn.substring(0,1).toupper()+$gn.substring(1).tolower()                                                     #Ensures first initial is uppercase
-            $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''
+        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *                                        #Looks to see if account sharing Emp ID already exists
+            $empVLD=$empLU | Select-Object -ExpandProperty employeeID                                          #IF exists, grabs the Emp ID
+    $gn="%variable%"                                                                                           #ex. Johnny
+        $gn=$gn.substring(0,1).toupper()+$gn.substring(1).tolower()                                            #Ensures first initial is uppercase
+            $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                 #Removes special characters
     $jobTitle="%variable%"
-        $3cx=IF($Office -eq 'Admin'){
+        $3cx=IF($Office -eq 'Admin'){                                                                          #Create message for Extension update or creation. Email is sent in HTML (<br> = new line | <strong> = bold)
                     'Create extension via 3CX, update Confluence (Admin Phone Extension) | IP phone = Extension | extensionAttribute13 = Full number (DID)'
-                }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){
+                }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){          #Update extension title in 3CX
                     "Update $jobTitle extension in $Office, if one exists"
                 }else{'N/A'
             }
-    $mngrID=IF("%variable%" -ne ''){"%variable%"
-                }elseIF($office -ne 'Admin'){
+    $mngrID=IF("%variable%" -ne ''){                                                                           #IF Manager Emp ID is Provided assign variable
+                    "%variable%"
+                }elseIF($office -ne 'Admin'){                                                                  #IF Manager Emp ID is not provided and employee is a Retail employee
                     Get-ADUser -Filter {title -eq 'Store Manager' -AND office -eq $Office -AND enabled -eq $true} -Properties * | Select-Object -ExpandProperty employeeID
             }
         $mngrLU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
             $mngrAD=$mngrLU | Select-Object -ExpandProperty SamAccountName
             $Phone=$mngrLU | Select-Object -ExpandProperty extensionAttribute12
-    $sn="%variable%"                                                                                                    #ex. appleseed / apple-seed
-        IF($sn -contains '-'){
-            $sn1=[string]$sn.Split('-')[0].substring(0,1).toupper()+[string]$sn.Split('-')[0].substring(1).tolower()    #ex. Apple
-            $sn2=[string]$sn.Split('-')[1].substring(0,1).toupper()+[string]$sn.Split('-')[1].substring(1).tolower()    #ex. Seed
-            $sn="$sn1-$sn2"                                                                                             #ex. Apple-Seed
-            $snScrb1=$sn1 -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                        #Removes special characters
-            $snScrb2=$sn2 -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                        #^SAME^
-            $snScrb="$snScrb1$snScrb2"                                                                                  #ex. AppleSeed
-        }else{
-            $sn=$sn.substring(0,1).toupper()+$sn.substring(1).tolower()                                                 #ex. Appleseed
-            $snScrb=$sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                          #Removes special characters
-        }
-    $middle=IF("%variable%" -eq ''){$null                                                                               #Leave middle initial $null, if doesn't exist
-            }else{"%variable%".toupper()[0]                                                                             #Grab only first initial and uppercase, if exists
+    $sn="%variable%"                                                                                            #ex. appleseed / apple-seed / apple seed
+            $sn1,$sn2=$sn -split '[- ]' | ForEach-Object{                                                       #Split IF surname contains Hyphen or Space
+                $_.Substring(0,1).ToUpper()+$_.Substring(1).ToLower()                                           #Uppercase first character
             }
-        $NAMEfull=IF($null -eq $middle){"$gn $sn"
-                }else{"$gn $middle $sn"
+            $sn=Switch($sn){                                                                                    #Combine after setting first character to uppercase
+                {$_ -like '* *'}{"$sn1 $sn2"}                                                                   #ex. Apple Seed
+                {$_ -like '*-*'}{"$sn1-$sn2"}                                                                   #ex. Apple-Seed
+                Default{$_}                                                                                     #ex. AppleSeed
+            }
+            $snScrb=$sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                  #Removes special characters
+    $middle=IF("%variable%" -eq ''){$null                                                                       #Leave middle initial $null, if doesn't exist
+            }else{"%variable%".toupper()[0]                                                                     #Grab only first initial and uppercase, if exists
+            }
+        $NAMEfull=IF($null -eq $middle){"$gn $sn"                                                               #ex. Johnny AppleSeed
+                }else{"$gn $middle $sn"                                                                         #ex. Johnny S AppleSeed
                 }
-    $prefName="%variable%".substring(0,1).toupper()+"%variable%".substring(1).tolower()                                 #Ensures first initial is uppercase
-        $displayName="$prefName $sn"
+    $pn="%prefName%"                                                                                            #ex. John
+        $pn=$pn.substring(0,1).toUpper()+$pn.substring(1).toLower()                                             #Ensures first initial is uppercase
+            $pnScrb=$pn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                  #Removes special characters
+                $displayName="$pn $sn"                                                                          #ex. John Apple-Seed
     $State="%variable%"
     $storeID="%variable%"
     $Street="%variable%"
