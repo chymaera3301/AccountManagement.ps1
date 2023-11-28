@@ -122,13 +122,13 @@ forEach($user in $userIDs){
     $proxy="smtp:$user@*******"
         $adLU1=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty employeeID
         $adLU2=Get-ADUser -Filter {proxyAddresses -like $proxy} -Properties * | Select-Object -ExpandProperty enabled
-    IF($user.length -lt 20){
+    IF($user.length -le 20){
         $hrNum=Switch($hrNum){
-            0{0}                #No issues with provided UserID
-            1{1}                #UserID was not provided
-            2{2}                #Exceeds 20 characters
-            3{3}                #Duplicate process
-            4{4}                #UserID already in use
+            1{1}                                                        #UserID was not provided
+            2{2}                                                        #Exceeds 20 characters
+            3{3}                                                        #Duplicate process
+            4{4}                                                        #UserID already in use
+            default{0}                                                  #No issues with provided UserID
         }
         IF($adLU2 -eq $true){
             IF($adLU1 -eq $empID -AND $hrNum -eq 0){                                #Provided UserID in use by active account, sharing Emp ID (Same User)
