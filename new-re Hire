@@ -272,18 +272,21 @@ Switch($jobTitle){
 <#-------------------------------------------------------------------------
 |Gather emails for BackOffice employees and Store/Home Office Dept Manager|
 -------------------------------------------------------------------------#>
-$deptMgrs=@('Assistant Store Manager','Bookkeeper','Distribution Center Asst Mgr','Retail Office Coordinator')
+$deptMgrs=@('*******','*******','*******','*******')
 Switch($dept){
-    'Clothing'{$deptMgrs+='Clothing Manager'}
-    'Sporting Goods'{$deptMgrs+='Sporting Goods Manager'}
+    'Clothing'{$deptMgrs+='*******'}
+    'Machine Shop'{$deptMgrs+='*******'}
+    'Sporting Goods'{$deptMgrs+='*******'}
     default{$deptMgrs}
 }
 $backOffice=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
 IF($Office -ne 'Admin'){
     $backOffice+=";"+(
-        $deptMgrs | ForEach-Object{
-            Get-ADUser -Filter "title -eq '$_'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName
-        } -join ';'
+        (
+            $deptMgrs | ForEach-Object{
+                Get-ADUser -Filter "title -eq '$_'" -SearchBase "$OU*******" | Select-Object -ExpandProperty UserPrincipalName
+            }
+        ) -join ';'
     )
 }
 
