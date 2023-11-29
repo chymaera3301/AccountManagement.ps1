@@ -272,15 +272,15 @@ Switch($jobTitle){
 <#-------------------------------------------------------------------------
 |Gather emails for BackOffice employees and Store/Home Office Dept Manager|
 -------------------------------------------------------------------------#>
-$deptMgrs=@('*******','*******','*******','*******')
-Switch($dept){
-    'Clothing'{$deptMgrs+='*******'}
-    'Machine Shop'{$deptMgrs+='*******'}
-    'Sporting Goods'{$deptMgrs+='*******'}
-    default{$deptMgrs}
-}
 $backOffice=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
-IF($Office -ne 'Admin'){
+$deptMgrs=@('*******','*******','*******','*******')
+$deptMgrs+=Switch($dept){
+                '*******'{'******* Manager'}
+                '*******'{'******* Manager'}
+                '*******'{'******* Lead'}
+                '*******'{'Lead *******','******* Manager'}
+            }
+IF($Office -ne '*******'){
     $backOffice+=";"+(
         (
             $deptMgrs | ForEach-Object{
