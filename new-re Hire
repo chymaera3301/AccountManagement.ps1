@@ -50,9 +50,7 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$empVLD,$gn,
                 Default{$_}                                                                                     #ex. AppleSeed
             }
             $snScrb=$sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                                  #Removes special characters
-    $middle=IF("%variable%" -eq ''){$null                                                                       #Leave middle initial $null, if doesn't exist
-            }else{"%variable%".toupper()[0]                                                                     #Grab only first initial and uppercase, if exists
-            }
+    $middle=IF("%NAMEmiddle%"){"%NAMEmiddle%".toUpper()[0]}                                                     #Grab only first initial and uppercase, if exists
         $NAMEfull=IF($null -eq $middle){"$gn $sn"                                                               #ex. Johnny AppleSeed
                 }else{"$gn $middle $sn"                                                                         #ex. Johnny S AppleSeed
                 }
@@ -68,28 +66,27 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$empVLD,$gn,
 <#--------------------------------------------------------------------------------
 |D365 ID creation and validation, utilizing initials from First, Middle, and Last|
 --------------------------------------------------------------------------------#>
-IF($null -ne $middle){                                                  #Generate different initials if middle initials exist or not
-    $eA10_a=($gnScrb[0]+$middle[0]+$snScrb[0]).toUpper()                #ex. JSA
-    $eA10_c=($gnScrb[0]+$middle[0]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JSAP
-}else{
-    $eA10_a=($gnScrb[0]+$gnScrb[1]+$snScrb[0]).toUpper()                #ex. JOA
-    $eA10_c=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JOAP
+$eA10users=@()                                                              #Set/Clear Array. Ordered from least to most preferred      
+$eA10users+=($gnScrb[0]+$snScrb[0]+$snScrb[1]+$snScrb[2]).toUpper()         #ex. JAPP
+$eA10users+=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toUpper()         #ex. JOHP
+$eA10users+=($gnScrb[0]+$gnScrb[1]+$snScrb[0]+$snScrb[1]).toUpper()         #ex. JOAP
+IF($middle){
+    $eA10users+=($gnScrb[0]+$middle[0]+$snScrb[0]+$snScrb[1]).toUpper()     #ex. JSAP
+    $eA10users+=($gnScrb[0]+$gnScrb[1]+$middle[0]+$snScrb[0]).toUpper()     #ex. JOSA
 }
-    $eA10_b=($gnScrb[0]+$snScrb[0]+$snScrb[1]).toUpper()                #ex. JAP
-    $eA10_d=($gnScrb[0]+$gnScrb[1]+$gnScrb[2]+$snScrb[0]).toUpper()     #ex. JOHP
-    $eA10_e=($gnScrb[0]+$snScrb[0]+$snScrb[1]+$snScrb[2]).toUpper()     #ex. JAPP
-
-$eA10users=@($eA10_e,$eA10_d,$eA10_c,$eA10_b,$eA10_a)                   #Create Array, containing possible initials. Ordered from least to most preferred
+$eA10users+=($gnScrb[0]+$snScrb[0]+$snScrb[1]).toUpper()                    #ex. JAP
+$eA10users+=($gnScrb[0]+$gnScrb[1]+$snScrb[0]).toUpper()                    #ex. JOA
+IF($middle){$eA10users+=($gnScrb[0]+$middle[0]+$snScrb[0]).toUpper()}       #ex. JSA
 
 forEach($eID in $eA10users){                                            #Check AD if initials are already in use
-    IF($null -ne $eID){
+    IF($eID){
         $eA10LU1=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty employeeID
         $eA10LU2=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty enabled
         $eA10LU3=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-object -ExpandProperty extensionAttribute10
         IF($eA10LU2 -AND $eA10LU1 -ne $empID){
-        }elseIF($eA10LU2 -eq $true -AND $eA10LU1 -eq $empID){           #IF initials exist and empID matches reuse, as it's the same account
+        }elseIF($eA10LU2 -AND $eA10LU1 -eq $empID){                    #IF initials exist and empID matches reuse, as it's the same account
             $eA10=Get-ADUser -Filter {extensionAttribute10 -eq $eID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
-        }elseIF($null -ne $eA10LU3){                                    #IF account is built and extensionAttribute10 contains a value
+        }elseIF($eA10LU3){                                             #IF account is built and extensionAttribute10 contains a value
             $eA10=Get-ADUser -Filter {employeeID -eq $empID} -Properties * | Select-Object -ExpandProperty extensionAttribute10
         }else{
             $eA10=$eID                                                  #else, initials don't exist then continue to next loop
@@ -100,20 +97,21 @@ forEach($eID in $eA10users){                                            #Check A
 <#-------------------------------------------------------------------------------------
 |Generate multiple possible userID's, in case provided userID is not valid or provided|
 -------------------------------------------------------------------------------------#>
-IF("%userID%" -eq ''){
-    $userID=$pnScrb+'.'+$snScrb                                         #ex. John.AppleSeed (Create if not provided)
-    $hrNum=1
+IF("%userID%"){$userID_a="%userID%"                                         #ex. John.AppleSeed (Generally what HR provides)
 }else{
-    $userID="%userID%"                                                  #ex. John.AppleSeed (Generally what HR provides)
+    $userID_a=$pnScrb+'.'+$snScrb                                           #ex. John.AppleSeed (Create if not provided)
+    $hrNum=1
 }
-$userID_b=$pnScrb+'.'+$middle+'.'+$snScrb                               #ex. John.S.AppleSeed
-$userID_c=$pnScrb[0]+'.'+$snScrb                                        #ex. J.AppleSeed
-$userID_d=$pnScrb[0]+$middle+'.'+$snScrb                                #ex. J.S.AppleSeed
-$userID_e=IF($sn -like '*-*' -OR $sn -like '* *'){
-                $pnScrb+'.'+$middle+'.'+($snScrb1[0]+$snScrb2[0])       #ex. John.S.AS
-            }else{
-                $pnScrb+'.'+$middle+'.'+$snScrb[0]                      #ex. John.S.A
-            }
+$userID_b=$pnScrb+'.'+$middle+'.'+$snScrb                                   #ex. John.S.AppleSeed
+$userID_c=$pnScrb[0]+'.'+$snScrb                                            #ex. J.AppleSeed
+$userID_d=$pnScrb[0]+'.'+$middle+'.'+$snScrb                                #ex. J.S.AppleSeed
+IF($sn -like '*-*' -OR $sn -like '* *'){
+    $userID_e=$pnScrb+'.'+($snScrb1[0]+$snScrb2[0])                         #ex. John.AS
+    $userID_f=$pnScrb+'.'+$middle+'.'+($snScrb1[0]+$snScrb2[0])             #ex. John.S.AS
+}else{
+    $userID_e=$pnScrb+'.'+$snScrb[0]                                        #ex. John.A
+    $userID_f=$pnScrb+'.'+$middle+'.'+$snScrb[0]                            #ex. John.S.A
+}
 
 $userIDs=@($userID_e,$userID_d,$userID_c,$userID_b,$userID)             #Create Array, containing possible usernames. Ordered from least to most preferred
 
@@ -130,13 +128,13 @@ forEach($user in $userIDs){
             4{4}                                                        #UserID already in use
             default{0}                                                  #No issues with provided UserID
         }
-        IF($adLU2 -eq $true){
-            IF($adLU1 -eq $empID -AND $hrNum -eq 0){                                #Provided UserID in use by active account, sharing Emp ID (Same User)
+        IF($adLU2){
+            IF($adLU1 -eq $empID -AND $user -eq $userID_a -AND $hrNum -eq 0){       #Provided UserID in use by active account, sharing Emp ID (Same User)
                 $userID=$empLU | Select-Object -ExpandProperty SAMAccountName       #Set variable, SAMAccountName - Duplicate Process
                 $email=$empLU | Select-Object -ExpandProperty userPrincipalName     #Set variable, Email|mail|UPN - Duplicate Process
                 $grID=$empLU | Select-Object -ExpandProperty userPrincipalName      #Set variable, Docebo username - Duplicate Process
                 $hrNum=3
-            }elseIF($adLU1 -ne $empID -AND $hrNum -eq '0'){                         #Provided UserID in use by active account, not sharing Emp ID (Different User)
+            }elseIF($adLU1 -ne $user -eq $userID_a -AND $hrNum -eq 0){              #Provided UserID in use by active account, not sharing Emp ID (Different User)
                 $hrNum=4
                 $hrFail=$adLU1
             }
@@ -145,7 +143,7 @@ forEach($user in $userIDs){
             $email="$userID@*******"                                                #Set variable, Email|mail|UPN
             $grID="$userID@*******"                                                 #Set variable, Docebo username
         }
-    }elseIF($user.length -gt 20 -AND $hrNum -eq '0'){
+    }elseIF($user.length -gt 20 -AND $user -eq $userID_a -AND $hrNum -eq 0){
         $hrNum=2                                                                    #Provided UserID exceeds 20 character
     }
 }
@@ -154,7 +152,7 @@ forEach($user in $userIDs){
 |IF account is disabled enable update SAMAccount if needed, else create a new account|
 ------------------------------------------------------------------------------------#>
 $PWord="*******"                                                                                            #Generate Password based on generated initials and Store ID
-IF($cReason -eq 'Rehire' -AND $null -ne $empVLD){
+IF($cReason -eq 'Rehire' -AND $empVLD){
     $userIDtst=$empLU | Select-Object -ExpandProperty SAMAccountName                                        #Search for a pre-existing account and attach to variable, grab SAMAccountName
     IF($userID -ne $userIDtst){                                                                             #IF SAMAccountName is different than what HR provided update SAMAccountName
         Set-ADUser $empLU -remove @{ProxyAddresses="SMTP:$userIDtst@*******"}                               #Remove old proxy
