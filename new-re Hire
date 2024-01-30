@@ -26,9 +26,9 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$empVLD,$gn,
         $gn=$gn.substring(0,1).toUpper()+$gn.substring(1).toLower()                                     #Ensures first initial is uppercase
             $gnScrb=$gn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                          #Removes special characters
     $jobTitle="%jobTitle%"
-        $3cx=IF($Office -eq '*******'){                                                                   #Create message for Extension update or creation. Email is sent in HTML (<br> = new line | <strong> = bold)
+        $3cx=IF($Office -eq '*******'){                                                                 #Create message for Extension update or creation. Email is sent in HTML (<br> = new line | <strong> = bold)
                 'Create extension via 3CX, update Confluence <a href="*******">(Admin Phone Extension)</a><br><u><strong>Update Local AD attributes</strong></u><br>&emsp;<strong>-Extension =</strong> ******* & *******<br>&emsp;<strong>-Full number (DID) =</strong> *******'
-            }elseIF($Dept -like '*******' -OR $Dept -eq '*******' -OR $Dept -eq '*******'){       #Update extension title in 3CX
+            }elseIF($Dept -like '*******' -OR $Dept -eq '*******' -OR $Dept -eq '*******'){             #Update extension title in 3CX
                 "Update $jobTitle extension for $Office, if one exists"
             }else{
                 'N/A'
@@ -300,6 +300,9 @@ Switch($office){                      #Home Office (Admin)
             }
         }
     }
+}
+IF($localGroups){
+    Add-ADPrincipalGroupMembership $userID -MemberOf $localGroups
 }
 <#-------------------------------------------------------------------------
 |Gather emails for BackOffice employees and Store/Home Office Dept Manager|
