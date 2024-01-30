@@ -301,9 +301,9 @@ Switch($office){                      #Home Office (Admin)
         }
     }
 }
-<#---------------------------------------------------------------------------------------------------------------------------
-|Gather emails for Asst Manager(s), Bookkeeper, Clothing Manager, Sporting Goods Manager, and Store/Home Office Dept Manager|
----------------------------------------------------------------------------------------------------------------------------#>
+<#-------------------------------------------------------------------------
+|Gather emails for BackOffice employees and Store/Home Office Dept Manager|
+-------------------------------------------------------------------------#>
 $backOffice=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
 $deptMgrs=@('Assistant Store Manager','Distribution Center Asst Mgr','Retail Office Coordinator')
 $deptMgrs+=Switch($dept){
