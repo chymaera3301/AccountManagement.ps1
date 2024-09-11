@@ -1,19 +1,10 @@
-param($EaglePW,$ChangeType,$Dept,$Office,$DC,$Lat,$OUa,$OU,$email,$empID,$empLU,$deptO,$DID,$eA10,$ext,$jobTitleO,$OfficeO,$userOU,$jobTitle,$3cx,$mngrID,$mngrLU,$City,$mngrAD,$mngrOU,$Phone,$State,$POS,$Street,$Zip,$StoreID,$userID,$Groups)
-    $EaglePW=Get-Random -Minimum 1000 -Maximum 9999
-    $ChangeType="%ChangeType%"
-    $City="%city%"
-    $Dept="%dept%"
+param($Dept,$Office,$OUa,$OU,$email,$empID,$empLU,$deptO,$DID,$eA10,$ext,$jobTitleO,$OfficeO,$jobTitle,$3cx,$mngrLU,$City,$mngrAD,$mngrOU,$Phone,$State,$Street,$Zip,$StoreID,$userID,$Groups)
+    $City = "%city%"
+    $Dept = "%dept%"
         $Office=Switch($Dept){
                 '*******'{'*******'}
                 '*******'{'*******'}
                 default{"%office%"}
-                }
-            $DC=IF($Office -eq '*******'){'*******'
-                }elseIF($Office -eq '*******'){'*******'}
-            $Lat=IF($Office -like "*******" -Or "%jobTitle%" -like "*******"){
-                    "Create Latitude/PathGuide account, Password $EaglePW"
-                }else{
-                    'N/A'
                 }
         $OUa=Switch($Dept){
                 '*******'{'*******'}
@@ -28,115 +19,167 @@ param($EaglePW,$ChangeType,$Dept,$Office,$DC,$Lat,$OUa,$OU,$email,$empID,$empLU,
     $email="%email%"
     $empID="%empID%"
         $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-            $deptO=$empLU | Select-Object -ExpandProperty department
+            $deptO=$empLU.department
             $DID=IF($Office -eq '*******'){
-                    $empLU | Select-Object -ExpandProperty extensionAttribute13
+                    $empLU.extensionAttribute13
                 }
-            $eA10=$empLU | Select-Object -ExpandProperty extensionAttribute10
+            $eA10=$empLU.extensionAttribute10
             $ext=IF($Office -eq '*******'){
-                    $empLU | Select-Object -ExpandProperty ipPhone
+                    $empLU.ipPhone
                 }
-            $jobTitleO=$empLU | Select-Object -ExpandProperty title
-            $OfficeO=$empLU | Select-Object -ExpandPropert physicalDeliveryOfficeName
-            $userOU=$empLU | Select-Object -ExpandProperty distinguishedName
+            $jobTitleO=$empLU.title
+            $OfficeO=$empLU.physicalDeliveryOfficeName
+            $userOU=$empLU.distinguishedName
     $jobTitle="%jobTitle%"
         $3cx=IF($Office -eq '*******' -AND $Office -ne $OfficeO){
-                'Create extension via 3CX, update Confluence (Admin Phone Extension) | IPphone = Extension | extensionAttribute13 = Full number (DID)'
+                'Create extension via 3CX, update Confluence (*******) | IPphone = Extension | extensionAttribute13 = Full number (DID)'
             }elseIF($Office -eq '*******' -AND $Office -eq $OfficeO){
-                "Update job title for associated extension in Confluence (Admin Phone Extension) | Ext: $ext | DID: $DID"
+                "Update job title for associated extension (*******) | Ext: $ext | DID: $DID"
             }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){
                 "Update $jobTitle extension in $Office, if one exists"
             }else{
                 'N/A'
             }
-    $mngrID="%mngrID%"
-        $mngrLU=Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
-            $mngrAD=$mngrLU | Select-Object -ExpandProperty SamAccountName
-            $mngrOU=$mngrLU | Select-Object -ExpandProperty distinguishedName
-            $Phone=$mngrLU | Select-Object -ExpandProperty extensionAttribute12
-    $State="%state%"
-        $POS=IF($State -eq 'MT'){
-                'POSMT'
-            }else{
-                'POS'
+        $mngrLU = Get-ADUser -Filter {employeeID -eq "%mngrID%"} -Properties *
+            $mngrAD = $mngrLU.SamAccountName
+            $mngrOU = $mngrLU.distinguishedName
+            $fax = IF("%fax%"){"%fax%"}
+            $Phone = IF("%phone%"){"%phone%"
+                    }else{$mngrLU.extensionAttribute12}
+        $State = "%state%"
+        $StoreID = "%StoreID%"
+        $Street = "%street%"
+        $Zip = "%postalCode%"
+        $userID = "%userID%"
+        $Groups = Get-ADPrincipalGroupMembership $empLU | Where-Object { $_.Name -ne '*******' }
+            IF($Dept -eq '*******' -OR $Dept -eq $deptO -AND $office -eq '*******'){
+            }elseIF($Groups){
+                Remove-ADPrincipalGroupMembership $empLU -MemberOf $Groups -Confirm:$false
             }
-    $StoreID="%StoreID%"
-    $Street="%street%"
-    $Zip="%postalCode%"
-    $userID="%userID%"
-        $Groups=(Get-ADPrincipalGroupMembership $empLU | Select-Object -ExpandProperty SAMAccountName) -ne '*******'
-                IF($Dept -eq '*******' -OR $Dept -eq $deptO){
-                }elseIF($Groups -ne ''){
-                    Remove-ADPrincipalGroupMembership $empLU -MemberOf $Groups -Confirm:$false
-                }
 
 <#--------------------------------------------------------------------------
 |Transfers and Position changes are updated the same, refresh Local AD info|
 --------------------------------------------------------------------------#>
-$empLU | Move-ADObject -TargetPath "$OU*******"
-Set-ADUser $empLU -replace @{`
-    department=$Dept;`
-    extensionAttribute4=$jobTitle;`
-    extensionAttribute5=$Office;`
-    extensionAttribute6=$mngrAD;`
-    extensionAttribute12=$Phone;`
-    homePhone=$Phone;`
-    manager=$mngrOU;`
-    l=$City;`
-    physicalDeliveryOfficeName=$Office;`
-    st=$state;`
-    streetAddress=$Street;`
-    telephoneNumber=$Phone;`
+Set-ADUser $empLU -replace @{
+    department=$Dept;
+    extensionAttribute4=$jobTitle;
+    extensionAttribute5=$Office;
+    extensionAttribute6=$mngrAD;
+    extensionAttribute12=$Phone;
+    homePhone=$Phone;
+    manager=$mngrOU;
+    l=$City;
+    physicalDeliveryOfficeName=$Office;
+    st=$state;
+    streetAddress=$Street;
+    telephoneNumber=$Phone;
     title=$jobTitle
 }
-
+Set-ADUser $empLU -clear extensionAttribute7
+IF($fax){
+    Set-ADUser $empLU -replace @{
+        facsimileTelephoneNumber=$fax
+    }
+}
+$empLU | Move-ADObject -TargetPath $OU
+$empLU = Get-ADUser -Filter {employeeID -eq $empID} -Properties *
+$userOU = $empLU.distinguishedName                                                      #Grab users OU, for use with Manager Roles
 <#---------------------------------------------------------------------------------------------------------
 |Add AD Global Groups associated with job title, create notes for access that requires manual intervention|
 ---------------------------------------------------------------------------------------------------------#>
-Switch($jobTitle){
-    #Back Office
-    '*******'{Get-ADUser -Filter * -SearchBase "$office*******" -Properties * | ForEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
-        $Egl="******* / $POS / *******"
-        $MS='n/a'}
-    '*******'{
-        $Egl="$POS / *******"
-        $MS=IF($Office -eq '*******'){'*******'}else{'*******'}}
-#Frontline
-    '*******'{
-        $Egl="$POS"
-        $MS='n/a'}
-    '*******'{
-        $Egl="$POS"
-        $MS=IF($Office -eq '*******'){"$Office ******* / *******"}else{"$Office *******"}}
-    '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******'
-        $Egl="******* / $POS"
-        $MS='n/a'}
-#Home Office / Admin
-    '*******'{Add-ADPrincipalGroupMembership $userID -MemberOf '*******','*******'
-        $Egl='*******'
-        $MS='*******'}
-#Not Listed/New Title
+$MS='n/a'
+Switch($office){                      #Home Office (Admin)
+    'Admin'{
+        $localGroups=@('*******')
+        $MS='Compare Entra groups with a user with the same or similar title to ensure required access is added'
+        Switch($Dept){
+            '*******'{
+                $localGroups+='*******','*******','*******'
+                Switch($jobTitle){
+                    '*******'{$localGroups+='*******','*******','*******'}
+                    '*******'{$localGroups+='*******','*******','*******'}
+                    default{$MS='Job Title not listed, compare with similar title and reach out to Manager (Entra and Local AD)'
+                    }
+                }
+            }
+            '*******'{
+                $localGroups+='*******','*******'
+                $MS='*******'
+                Switch($jobTitle){
+                    '*******'{$localGroups+='*******'}
+                    '*******'{$localGroups+='*******','*******'}
+                    default{$MS='Job Title not listed, compare with similar title and reach out to Manager (Entra and Local AD)'
+                    }
+                }
+            }
+            default{
+                IF($Dept -like '*******'){
+                    $localGroups+='*******','*******'
+                    Switch($jobTitle){
+                        '*******'{$localGroups+='Intranet Folder Access','Marketing'}
+                        '*******'{}
+                        '*******'{}
+                        default{$MS='Job Title not listed, compare with similar title and reach out to Manager (Entra and Local AD)'
+                        }
+                    }
+                }else{$MS='Job Title not listed, compare with similar title and reach out to Manager (Entra and Local AD)'
+                }
+            }
+        }
+    }
     default{
-        $Egl='Position not listed in script. Compare with similar title and/or reach out to Manager'
-        $MS='Compare with similar title and/or reach out to Manager (Azure and Local AD)'}}
-
-<#---------------------------------------------------------------------------------------------------------------------------
-|Gather emails for Asst Manager(s), Bookkeeper, Clothing Manager, Sporting Goods Manager, and Store/Home Office Dept Manager|
----------------------------------------------------------------------------------------------------------------------------#>
-$Amgr=(Get-ADUser -Filter {title -eq 'Assistant Store Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Bkpr=(Get-ADUser -Filter {title -eq 'Bookkeeper' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Cmgr=(Get-ADUser -Filter {title -eq 'Clothing Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$SGDm=(Get-ADUser -Filter {title -eq 'Sporting Goods Manager' -AND office -eq "%office%" -AND enabled -eq $true} | Select-Object -ExpandProperty UserPrincipalName) -join ';'
-$Smgr=$mngrLU | Select-Object -ExpandProperty UserPrincipalName
-IF($Office -ne 'Admin'){
-    $eMGR=Switch($Dept){
-            'Clothing'{"$Amgr;$Bkpr;$Cmgr;$Smgr"}           #If employee is in Clothing then include Clothing Manager
-            'Sporting Goods'{"$Amgr;$Bkpr;$SGDm;$Smgr"}     #If employee is in Sporting Goods then include SGD Manager
-            default{"$Amgr;$Bkpr;$Smgr"}}                   #If employee is not in Clothing or Sporting Goods, just send to Asst Manager(s), Bookkeeper, and Store Manager
-}else{
-    $eMGR=$Smgr                                             #If employee is not a Store Employee, just send to the provided Manager
+        $localGroups += @("*******")
+        Switch($Dept){          #Retail & DC (Back Office/Frontline)
+            '*******'{}
+            '*******'{$MS=IF($Office -eq '*******'){'*******'}else{'*******'}}
+            '*******'{
+                Get-ADUser -Filter "title -ne '$jobTitle' -AND physicalDeliveryOfficeName -eq '$office'" -SearchBase "$OU*******" | 
+                    forEach-Object {Set-ADUser $_.sAMAccountName -replace @{manager=$userOU;extensionAttribute6=$userID}}
+                $localGroups='HR Benefits'
+                $MS=IF($Office -eq '*******'){'*******'}else{'*******'}}
+            '*******'{
+                $localGroups='*******'
+                Switch($jobTitle){
+                    '*******'{$localGroups='*******'}
+                }
+            }
+            default{$MS='Compare with similar title and reach out to Manager (Entra and Local AD)'
+            }
+        }
+    }
 }
-
+IF($localGroups){
+    Add-ADPrincipalGroupMembership $userID -MemberOf $localGroups
+}
+<#-------------------------------------------------------------------------
+|Gather emails for BackOffice employees and Store/Home Office Dept Manager|
+-------------------------------------------------------------------------#>
+$deptMgrs = @(                                                      #Create array of standard job titles to gather emails for
+    '*******',
+    '*******',
+    '*******',
+    '*******',
+    '*******'
+)
+$deptMgrs += Switch($dept){                                         #Add additional titles to array based on the employee's department
+                'Clothing'{'*******'}
+                'Hardside'{'*******'}
+                'Machine Shop'{'*******'}
+                'Shop'{'*******'}
+                'Sporting Goods'{'*******','*******'}
+            }
+IF($Office -ne 'Admin'){                                            #IF not an Admin / Home Office employee, add the gathered emails
+    $backOffice = (
+        $deptMgrs | ForEach-Object{
+            Get-ADUser -Filter "title -eq '$_'" -SearchBase $OU | Select-Object -ExpandProperty UserPrincipalName
+        }
+    ) -join ';'
+    IF($jobTitle -contains 'Manager'){
+        $backOffice += ';' + $mngrLU.UserPrincipalName
+    }
+}else{                                                              #IF is an Admin / Home Office employee, only add provided manager's email
+    $backOffice = $mngrLU.UserPrincipalName
+}
 <#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 |Create JSON array that will be parsed by Power Automate Desktop for use with generating Eagle account and passing data to an email for Help Desk and users in generated email list|
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#>
