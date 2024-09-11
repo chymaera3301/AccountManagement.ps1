@@ -1,59 +1,61 @@
-<#----------------------------------------------------------------------------------
-|Part 1, Gather terminated emplpoyee details, then disable and moved to Disabled OU|
-----------------------------------------------------------------------------------#>
-param($empID,$empLU,$eA10,$email,$jobTitle,$NAMEfull,$OU,$Groups)
-    $empID="%empID%"
-        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-            $eA10=$empLU | Select-Object -ExpandProperty extensionAttribute10
-            $email=$empLU | Select-Object -ExpandProperty userPrincipalName
-            $jobTitle=$empLU | Select-Object -expandProperty title
-            $NAMEfull=$empLU | Select-Object -ExpandProperty Name
-            $OU=$empLU | Select-Object -ExpandProperty distinguishedName
-            $Groups=(Get-ADPrincipalGroupMembership $empLU | Select-Object -ExpandProperty SAMAccountName) -ne 'Domain Users'
-   
-IF($OU -ne "$NAMEfull*******"){                                             #IF account is not in the Disabled OU then move them and mark as disabled
-        Disable-ADAccount $empLU
-        Get-ADUser $empLU | Move-ADObject -TargetPath "*******"
-    }else{
-        Disable-ADAccount $empLU
-}
-IF($Groups -eq ''){                                                         #Remove Local AD Global Groups, IF they exist
-    }else{
-        Remove-ADPrincipalGroupMembership $empLU -MemberOf $Groups -Confirm:$false
-}
-<#---------------------------------------------------------------------------------------------
-|This part added due to issues with rehiring employees that still have connections to exchange|
----------------------------------------------------------------------------------------------#>
-$badProxies=$empLU | Select-Object -ExpandProperty proxyAddresses |         #Gather all bad proxies associated with prior exchange system
-            Where-Object{($_ -match '*******') -or
-                        ($_ -match '*******') -or
-                        ($_ -match '*******') -or
-                        ($_ -match '*******')
-            }
-IF($badProxies){                                                            #Remove each bad proxy that was gathered, if any were grabbed from search
-    forEach ($proxy in $badProxies){
-        Set-ADUser $empLU  -remove @{ProxyAddresses=$proxy}
-    }
-}
+<#--------------------------------------------------------------------------
+|Gather terminated emplpoyee details, then disable and moved to Disabled OU|
+--------------------------------------------------------------------------#>
+param($empLU,$eA10,$email,$ext,$DID,$Groups,$jobTitle,$NAMEfull,$office,$OU)
+    $empLU = Get-ADUser -Filter {employeeID -eq "%empID%"} -Properties *
+        $eA10 = $empLU.extensionAttribute10
+        $email = $empLU.userPrincipalName
+        $ext = $empLU.extensionAttribute13
+        $DID = $empLU.ipPhone
+        $Groups = Get-ADPrincipalGroupMembership $empLU | Where-Object {$_.Name -ne '*******'}
+        $jobTitle = $empLU.title
+        $NAMEfull = $empLU.Name
+        $office = $empLU.physicalDeliveryOfficeName
+    $OU = "*******"
 
-Set-ADUser $empLU -clear facsimileTelephoneNumber,homePhone,initials,ipPhone,MsExchMailboxGuid,MsExchRecipientDisplayType,MsExchRecipientTypeDetails,telephoneNumber
+IF($Groups){                                                         #Remove Local AD Global Groups, IF they exist
+    Remove-ADPrincipalGroupMembership $empLU -MemberOf $Groups -Confirm:$false
+}
+Set-ADUser $empLU -clear `
+    extensionAttribute3,
+    extensionAttribute5,
+    extensionAttribute6,
+    extensionAttribute7,
+    extensionAttribute10,
+    extensionAttribute12,
+    extensionAttribute13,
+    extensionAttribute14,
+    facsimileTelephoneNumber,
+    homePhone,
+    initials,
+    ipPhone,
+    l,
+    legacyExchangeDN,
+    manager,
+    mail,
+    mailNickname,
+    MsExchMailboxGuid,
+    MsExchRecipientDisplayType,
+    MsExchRecipientTypeDetails,
+    physicalDeliveryOfficeName,
+    proxyAddresses,
+    telephoneNumber
 
-<#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-|Create JSON array that will be parsed by Power Automate Desktop for use with generating Eagle account and passing data to an email for Help Desk and users in generated email list|
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#>
-$JSON=[pscustomobject]@{
-    eagleID=$eA10
-    email=$email
-    jobTitle=$jobTitle
+Set-ADUser $empLU -replace @{
+    description = "Terminated '%termDate%'"
+    extensionAttribute9 = 'Termed'
+}
+Disable-ADAccount $empLU
+$empLU | Move-ADObject -TargetPath $OU
+
+<#--------------------------------------------------------------------------------------------------------------------------------------------
+|Create JSON array that will be parsed by Power Automate Desktop for passing data to an email for Help Desk and users in generated email list|
+--------------------------------------------------------------------------------------------------------------------------------------------#>
+$JSON = [pscustomobject]@{
+    initials = $eA10
+    email = $email
+    ext = $ext
+    DID = $DID
+    jobTitle = $jobTitle
 }
 $JSON | ConvertTo-Json -Compress | Write-Output
-
-
-<#------------------------------------------------------------------
-|Part 2, used in a seperate action once Eagle was confirmed Deleted|
-|Once confirmed this portion will run clearing Eagle ID and added a|
-|stamp containing termination date                                 |
-------------------------------------------------------------------#>
-$empLU=Get-ADUser -Filter {employeeID -eq "%empID%"} -Properties *
-    Set-ADUser $empLU -Clear extensionAttribute10
-    Set-ADuser $empLU -Description "Terminated '%termDate%'"
