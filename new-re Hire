@@ -34,8 +34,8 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$gn,$jobTitl
             }else{
                 'N/A'
             }
-    $mngrID = IF("%MngrID%"){"%MngrID%"                                                             #IF Manager Emp ID is Provided assign variable
-            }elseIF($office -ne 'Admin'){                                                           #IF Manager Emp ID is not provided and employee is a Retail employee
+    $mngrID = IF("%MngrID%"){"%MngrID%"                                         #IF Manager Emp ID is Provided assign variable
+            }elseIF($office -ne 'Admin'){                                       #IF Manager Emp ID is not provided and employee is a Retail employee
                 Get-ADUser -Filter "title -eq 'Store Manager'" -AND -SearchBase $OU | Select-Object -ExpandProperty employeeID
             }
         $mngrLU = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
@@ -43,26 +43,27 @@ param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$gn,$jobTitl
             $fax = IF("%fax%"){"%fax%"}
             $Phone = IF("%phone%"){"%phone%"
                     }else{$mngrLU.extensionAttribute12}
-    $sn = "%NAMElast%"                                                                              #ex. appleseed / apple-seed / apple seed
-            $snScrb1,$snScrb2=$sn -split '[- ]' | forEach-Object{                                   #Split IF surname contains Hyphen or Space
-                $_.Substring(0,1).ToUpper()+$_.Substring(1).ToLower()                               #Uppercase first character
-            }
-            $sn = Switch($sn){                                                                      #Combine after setting first character to uppercase
-                {$_ -like '* *'}{"$snScrb1 $snScrb2"}                                               #ex. Apple Seed
-                {$_ -like '*-*'}{"$snScrb1-$snScrb2"}                                               #ex. Apple-Seed
-                Default{$_}                                                                         #ex. AppleSeed
-            }
-            $snScrb = $sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                    #Removes special characters
-    $middle = IF("%NAMEmiddle%"){"%NAMEmiddle%".toUpper()[0]}                                       #Grab only first initial and uppercase, if exists
-        $NAMEfull = IF($middle){"$gn $middle $sn"                                                   #ex. Johnny S AppleSeed
-                }else{"$gn $sn"                                                                     #ex. Johnny AppleSeed
+    $sn = "%NAMElast%"                                                          #ex. appleseed / apple-seed / apple - seed / apple seed
+        $snSplit = $sn -split '[- ]+' | forEach-Object{                         #Split IF surname contains Hyphen or Space
+            $_.Substring(0,1).ToUpper()+$_.Substring(1).ToLower()               #Uppercase first character
+        }
+            $sn1, $sn2 = $snSplit
+        Switch($sn){                                                            #Combine after setting first character to uppercase
+            {$sn -match '-'}{$sn = $snSplit -join '-'}                          #ex. Apple-Seed
+            {$sn -match ' '}{$sn = $snSplit -join ' '}                          #ex. Apple Seed
+            Default{$sn = $snSplit}                                             #ex. AppleSeed
+        }
+        $snScrb = $sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                    #Removes special characters
+    $middle = IF("%NAMEmiddle%"){"%NAMEmiddle%".toUpper()[0]}                   #Grab only first initial and uppercase, if exists
+        $NAMEfull = IF($middle){"$gn $middle $sn"                               #ex. Johnny S AppleSeed
+                }else{"$gn $sn"                                                 #ex. Johnny AppleSeed
                 }
-    $pn = "%prefName%"                                                                              #ex. John
-        $pn = $pn.substring(0,1).toUpper()+$pn.substring(1).toLower()                               #Ensures first initial is uppercase
-            $pnScrb = $pn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                                    #Removes special characters
-                $displayName = "$pn $sn"                                                            #ex. John Apple-Seed
+    $pn = "%prefName%"                                                          #ex. John
+        $pn = $pn.substring(0,1).toUpper()+$pn.substring(1).toLower()           #Ensures first initial is uppercase
+            $pnScrb = $pn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                #Removes special characters
+                $displayName = "$pn $sn"                                        #ex. John Apple-Seed
     $State = "%state%"
-    $storeID = "%storeID%"
+    $storeID = "%storeID%".toString().padLeft(4,'0')
     $Street = "%streetAddress%"
     $Zip = "%postalCode%"
 
@@ -115,13 +116,14 @@ IF($sn -like '*-*' -OR $sn -like '* *'){
     $userID_f = $pnScrb+'.'+$middle+'.'+$snScrb[0]                            #ex. John.S.A
 }
 
-$userIDs=@($userID_f,$userID_e,$userID_d,$userID_c,$userID_b,$userID_a)     #Create Array, containing possible usernames. Ordered from least to most preferred
+$userIDs = @($userID_f,$userID_e,$userID_d,$userID_c,$userID_b,$userID_a)     #Create Array, containing possible usernames. Ordered from least to most preferred
 
 forEach($user in $userIDs){
     $user = $user -replace '\.\.', '.'                                        #Replace double dots ".." with a single dot "."
     $proxy = Get-ADUser -Filter {proxyAddresses -like "*******$user@*******"} -Properties *
         $adLU1 = $proxy.employeeID
         $adLU2 = $proxy.enabled
+        $adLU3 = $proxy.SamAccountName
     IF($user.length -le 20){
         $hrNum = Switch($hrNum){                                        #Provided UserID/Email check
             1{1}                                                        #UserID/Email not provided
@@ -131,21 +133,19 @@ forEach($user in $userIDs){
             default{0}                                                  #No issues
         }
         IF($adLU2){
-            IF($adLU1 -eq $empID -AND $user -eq $userID_a -AND $hrNum -eq 0){           #Provided UserID in use by active account, sharing Emp ID (Same User)
+            IF($adLU1 -eq $empID -AND $user -eq $adLU3 -AND $hrNum -eq 0){              #Provided UserID in use by active account, sharing Emp ID (Same User)
                 $userID = $empLU.SAMAccountName                                         #Set variable, SAMAccountName - Duplicate Process
                 $email = $empLU.userPrincipalName                                       #Set variable, Email|mail|UPN - Duplicate Process
-                $grID = $empLU.userPrincipalName                                        #Set variable, Docebo username - Duplicate Process
                 $hrNum = 3
-            }elseIF($adLU1 -ne $empID -AND $user -eq $userID_a -AND $hrNum -eq 0){      #Provided UserID in use by active account, not sharing Emp ID (Different User)
+            }elseIF($adLU1 -ne $empID -AND $user -eq $adLU3 -AND $hrNum -eq 0){         #Provided UserID in use by active account, not sharing Emp ID (Different User)
                 $hrNum = 4
                 $hrFail = $adLU1                                                        #Grab employeeID of active user, added to conflict notice
             }
         }else{
             $userID = $user                                                             #Set variable, SAMAccountName
             $email = "$userID@*******"                                                  #Set variable, Email|mail|UPN
-            $grID = "$userID@*******"                                                   #Set variable, Docebo username
         }
-    }elseIF($user.length -gt 20 -AND $user -eq $userID_a -AND $hrNum -eq 0){
+    }elseIF($user.length -gt 20 -AND $user -eq $adLU3 -AND $hrNum -eq 0){
         $hrNum = 2
     }
 }
@@ -154,38 +154,24 @@ forEach($user in $userIDs){
 ------------------------------------------------------------------------------------#>
 IF($cReason -eq 'Rehire' -AND $empLU){
     Set-ADUser $empLU -clear `
+        description,
         extensionAttribute7,                                                            #Contains note for MS Licensing exception
         extensionAttribute9,                                                            #Marks if the user is termed, to prevent duplicate processes
         proxyAddresses,
         targetAddress
     $userIDtst = $empLU.SAMAccountName                                                  #Search for a pre-existing account and attach to variable, grab SAMAccountName
-    $grID = $empLU.userPrincipalName                                                    #Update variable, Docebo using old username/email
     IF($userID -ne $userIDtst){                                                         #IF SAMAccountName is different than what HR provided update SAMAccountName
         Set-ADUser $empLU -add @{ProxyAddresses = "*******$userIDtst@*******"}          #Set new email as default and old as secondary proxy
-        Set-ADUser $empLU -replace @{                                                   #Update account to new email and SAMAccountName
-            mail = $email;
-            mailNickname = $userID;
-            sAMAccountName = $userID;
-            sn = $sn;
-            userPrincipalName = $email
-        }
-    }
-    Set-ADUser $empLU -description $null -Enabled $true
-    Set-ADUser $empLU -replace @{
-        displayName = $displayName;
-        givenName = $pnScrb
     }
     $DN = $empLU.distinguishedName
         Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
-    $empLU = Get-ADUser -Filter {employeeID -eq $empID} -Properties *                   #Update variable
-}elseIF($cReason -eq 'New Hire' -OR $cReason -eq 'Rehire' -AND $null -eq $empLU){       #IF account does not exist and not a rehie, then create a new account
+}elseIF($null -eq $empLU){                                                              #IF account does not exist and not a rehie, then create a new account
     New-ADUser -Name $NAMEfull `
                 -Company "*******" `
                 -Country '*******' `
                 -DisplayName $displayName `
                 -EmailAddress $email `
                 -EmployeeID $empID `
-                -Enabled $true `
                 -GivenName $pnScrb `
                 -samaccountname $userID `
                 -Surname $sn `
@@ -202,6 +188,7 @@ Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlai
 Set-ADUser $empLU -ChangePasswordAtLogon $true -Enabled $true -manager $mngrAD                              #Set password to expire at login, enable, and set Manager
 Set-ADUser $empLU -replace @{                                                                               #Update account details to current
     department = $Dept;
+    displayName = $displayName;
     extensionAttribute1 = $DOB;
     extensionAttribute2 = $DOH;
     extensionAttribute4 = $jobTitle;
@@ -209,15 +196,21 @@ Set-ADUser $empLU -replace @{                                                   
     extensionAttribute6 = $mngrAD;
     extensionAttribute10 = $eA10;
     extensionAttribute12 = $Phone;
+    givenName = $pnScrb
     homePhone = $Phone;
     initials = $eA10;
     l = $city;
+    mail = $email;
+    mailNickname = $userID;
     physicalDeliveryOfficeName = $office;
     postalCode = $Zip;
+    sAMAccountName = $userID;
+    sn = $sn;
     st = $State;
     streetAddress = $Street;
     telephoneNumber = $Phone;
-    title = $jobTitle
+    title = $jobTitle;
+    userPrincipalName = $email
 }
 IF($fax){
     Set-ADUser $empLU -replace @{facsimileTelephoneNumber = $fax}
@@ -343,7 +336,6 @@ $JSON = [pscustomobject]@{
     eMGR = $backOffice
     ext = $3cx
     fullName = $NAMEfull
-    grID = $grID
     hrNotif = $hrNotif
     hrNum = $hrNum
     init = $eA10
