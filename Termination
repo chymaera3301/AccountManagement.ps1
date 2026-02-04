@@ -6,9 +6,11 @@ param($empLU,$eA10,$email,$ext,$DID,$Groups,$jobTitle,$NAMEfull,$office,$OU)
         $eA10 = $empLU.extensionAttribute10
         $email = $empLU.userPrincipalName
         $ext = $empLU.extensionAttribute13
+        $desc = $empLU.description
         $DID = $empLU.ipPhone
         $Groups = Get-ADPrincipalGroupMembership $empLU | Where-Object {$_.Name -ne '*******'}
         $jobTitle = $empLU.title
+        $mngrID = $empLU.extensionAttribute6
         $NAMEfull = $empLU.Name
         $office = $empLU.physicalDeliveryOfficeName
     $OU = "*******"
@@ -21,13 +23,12 @@ Set-ADUser $empLU -clear `
     extensionAttribute5,
     extensionAttribute6,
     extensionAttribute7,
-    extensionAttribute10,
+    extensionAttribute8,
     extensionAttribute12,
     extensionAttribute13,
     extensionAttribute14,
     facsimileTelephoneNumber,
     homePhone,
-    initials,
     ipPhone,
     l,
     legacyExchangeDN,
@@ -45,7 +46,13 @@ Set-ADUser $empLU -replace @{
     description = "Terminated '%termDate%'"
     extensionAttribute9 = 'Termed'
 }
+
+IF($office -eq '*******'){
+    Start-Sleep -Seconds 600
+}
+
 Disable-ADAccount $empLU
+Start-Sleep -Seconds 30
 $empLU | Move-ADObject -TargetPath $OU
 
 <#--------------------------------------------------------------------------------------------------------------------------------------------
@@ -55,7 +62,9 @@ $JSON = [pscustomobject]@{
     initials = $eA10
     email = $email
     ext = $ext
+    desc = $desc
     DID = $DID
     jobTitle = $jobTitle
+    mngrID = "$mngrID@murdochs.com"
 }
 $JSON | ConvertTo-Json -Compress | Write-Output
