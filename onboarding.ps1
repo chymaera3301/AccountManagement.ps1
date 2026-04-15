@@ -1,70 +1,72 @@
-param($City,$cReason,$Dept,$Office,$OUa,$OU,$DOB,$DOH,$empID,$empLU,$gn,$jobTitle,$3cx,$mngrID,$mngrAD,$Phone,$sn,$middle,$NAMEfull,$pn,$pnScrb,$displayName,$State,$storeID,$Street,$Zip)
-    $City = "%city%"
-    $cReason = "%changeReason%"
-    $Dept = "%dept%"
-        $Office = Switch($Dept){                                        #Converts HR provided location to Admin if Home Office, for use with Dynamic rules in Entra
-                '*******'{'*******'}
-                '*******'{'*******'}
-                '*******'{'*******'}
-                default{"%variable%"}
-            }
-        $OUa = Switch($Dept){                                           #Converts HR provided Department to what's listed in Local AD
-                '*******'{'*******'}
-                '*******'{'*******'}
-                '*******'{'*******'}
-                default{$Dept}
-            }
-            $OU = Switch($Office){                                      #Adjusted OU path for Store or Home Office
-                'Admin'{"$OUa*******"}
-                default{"$Office*******"}
-            }
+param($changeReason, $DOB, $DOH, $empID, $firearmAccess, $store, $storeAddress, $storeContact, $titleDept, $mngrID, $nameLegal, $namePref, $userID)
+    $changeReason = "%changeReason%"
     $DOB = "%DOB%"
-    $DOH = "%DateOfHire%"
+    $DOH = "%hireDate%"
     $empID = "%empID%"
         $empLU = Get-ADUser -Filter {employeeID -eq $empID} -Properties *       #Looks to see if account sharing Emp ID already exists
-    $gn = "%NAMEfirst%"                                                         #ex. Johnny
-        $gn = $gn.substring(0,1).toUpper()+$gn.substring(1).toLower()           #Ensures first initial is uppercase
-    $jobTitle = "%jobTitle%"
-        $3cx = IF($Office -eq 'Admin'){                                         #Create message for Extension update or creation. Email is sent in HTML (<br> = new line | <strong> = bold)
-                'Create extension via ******* <a href="*******">(Admin Phone Extension)</a><br><u><strong>Update Local AD attributes</strong></u><br>&emsp;<strong>-Extension = </strong>******* & *******<br>&emsp;<strong>-Full number (DID) =</strong> *******'
-            }elseIF($Dept -like '*******' -OR $Dept -eq '*******' -OR $Dept -eq '*******'){
-                "Update $jobTitle extension for $Office, if one exists"         #Update extension title in 3CX
-            }else{
-                'N/A'
-            }
-    $mngrID = IF("%MngrID%"){"%MngrID%"                                         #IF Manager Emp ID is Provided assign variable
+    $firearmAccess = "%firearmAccess%"
+    $store = "%store%"
+        $location = $store.split("|")[1]
+        $storeID = $store.split("|")[0].toString().padLeft(4,'0')
+    $storeAddress = "%storeAddress%"
+        $City = $storeAddress.split("|")[1]
+        $State = $storeAddress.split("|")[2]
+        $Street = $storeAddress.split("|")[0]
+        $Zip = $storeAddress.split("|")[3]
+    $storeContact = "%storeContact%"
+        $Phone = $storeContact.split("|")[0]
+        $fax = $storeContact.split("|")[1]
+    $titleDept = "%titleDept%"
+        $Dept = $titleDept.split("|")[1]
+            $Office = Switch($Dept){                                            #Converts HR provided location to Admin if Home Office, for use with Dynamic rules in Entra
+                    '*******'{'*******'}
+                    '*******'{'*******'}
+                    '*******'{'*******'}
+                    default{$location}
+                }
+            $OUa = Switch($Dept){                                               #Converts HR provided Department to what's listed in Local AD
+                    '*******'{'*******'}
+                    '*******'{'*******'}
+                    '*******'{'*******'}
+                    default{$Dept}
+                }
+                $OU = Switch($Office){                                          #Adjusted OU path for Store or Home Office
+                    'Admin'{"$OUa*******"}
+                    default{"$Office*******"}
+                }
+        $jobTitle = $titleDept.split("|")[0]
+    $mngrID = IF("%mngrID%"){"%mngrID%"                                         #IF Manager Emp ID is Provided assign variable
             }elseIF($office -ne 'Admin'){                                       #IF Manager Emp ID is not provided and employee is a Retail employee
-                Get-ADUser -Filter "title -eq '*******'" -SearchBase $OU | Select-Object -ExpandProperty employeeID
+                Get-ADUser -Filter "title -eq 'Store Manager'" -SearchBase $OU | Select-Object -ExpandProperty employeeID
             }
         $mngrLU = Get-ADUser -Filter {employeeID -eq $mngrID} -Properties *
             $mngrAD = $mngrLU.SamAccountName
             $mngrID = $mngrLU.employeeID
-            $fax = IF("%fax%"){"%fax%"}
-            $Phone = IF("%phone%"){"%phone%"
+            $Phone = IF($Phone){$Phone
                     }else{$mngrLU.extensionAttribute12}
-    $sn = "%NAMElast%"                                                          #ex. appleseed / apple-seed / apple - seed / apple seed
-        $snSplit = $sn -split '[- ]+' | forEach-Object{                         #Split IF surname contains Hyphen or Space
-            $_.Substring(0,1).ToUpper()+$_.Substring(1).ToLower()               #Uppercase first character
-        }
-            $sn1, $sn2 = $snSplit
-        Switch($sn){                                                            #Combine after setting first character to uppercase
-            {$sn -match '-'}{$sn = $snSplit -join '-'}                          #ex. Apple-Seed
-            {$sn -match ' '}{$sn = $snSplit -join ' '}                          #ex. Apple Seed
-            Default{$sn = $snSplit}                                             #ex. AppleSeed
-        }
-        $snScrb = $sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                    #Removes special characters
-    $middle = IF("%NAMEmiddle%"){"%NAMEmiddle%".toUpper()[0]}                   #Grab only first initial and uppercase, if exists
-        $NAMEfull = IF($middle){"$gn $middle $sn"                               #ex. Johnny S AppleSeed
-                }else{"$gn $sn"                                                 #ex. Johnny AppleSeed
-                }
-    $pn = "%prefName%"                                                          #ex. John
+    $nameLegal = "%nameLegal%"
+        $gn = $nameLegal.split("|")[0]                                          #ex. Johnny
+            $gn = $gn.substring(0,1).toUpper()+$gn.substring(1).toLower()       #Ensures first initial is uppercase
+        $sn = $nameLegal.split("|")[2]                                          #ex. appleseed / apple-seed / apple - seed / apple seed
+            $snSplit = $sn -split '[- ]+' | forEach-Object{                     #Split IF surname contains Hyphen or Space
+                $_.Substring(0,1).ToUpper()+$_.Substring(1).ToLower()           #Uppercase first character
+            }
+                $sn1, $sn2 = $snSplit
+            Switch($sn){                                                        #Combine after setting first character to uppercase
+                {$sn -match '-'}{$sn = $snSplit -join '-'}                      #ex. Apple-Seed
+                {$sn -match ' '}{$sn = $snSplit -join ' '}                      #ex. Apple Seed
+                Default{$sn = $snSplit}                                         #ex. AppleSeed
+            }
+            $snScrb = $sn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                #Removes special characters
+        $middleName = $nameLegal.split("|")[1]
+            $middle = IF($middleName){$middleName.toUpper()[0]}                 #Grab only first initial and uppercase, if exists
+                $NAMEfull = IF($middle){"$gn $middle $sn"                       #ex. Johnny S AppleSeed
+                                }else{"$gn $sn"                                 #ex. Johnny AppleSeed
+                        }
+    $pn = "%namePref%"                                                          #ex. John
         $pn = $pn.substring(0,1).toUpper()+$pn.substring(1).toLower()           #Ensures first initial is uppercase
             $pnScrb = $pn -replace '[^\p{L}\p{Nd}/`//-/_/!]', ''                #Removes special characters
                 $displayName = "$pn $sn"                                        #ex. John Apple-Seed
-    $State = "%state%"
-    $storeID = "%storeID%".toString().padLeft(4,'0')
-    $Street = "%streetAddress%"
-    $Zip = "%postalCode%"
 
 <#-------------------------------------------------------------------------------------
 |Generate multiple possible userID's, in case provided userID is not valid or provided|
@@ -112,7 +114,7 @@ forEach($user in $userIDs){
             }
         }else{
             $userID = $user                                                         #Set variable, SAMAccountName
-            $email = "$userID@murdochs.com"                                         #Set variable, Email|mail|UPN
+            $email = "$userID@*******"                                              #Set variable, Email|mail|UPN
         }
     }elseIF($user.length -gt 20 -AND $user -eq $adLU3 -AND $hrNum -eq 0){
         $hrNum = 2
@@ -121,7 +123,7 @@ forEach($user in $userIDs){
 <#---------------------------------------------------------------------------------------
 |IF account is disabled, enable & update SAMAccount if needed, else create a new account|
 ---------------------------------------------------------------------------------------#>
-IF($cReason -eq 'Rehire' -AND $empLU){
+IF($changeReason -eq '*******' -AND $empLU){
     Set-ADUser $empLU -clear `
         description,
         extensionAttribute7,                                                            #Contains note for MS Licensing exception
@@ -130,7 +132,7 @@ IF($cReason -eq 'Rehire' -AND $empLU){
         targetAddress
     $userIDtst = $empLU.sAMAccountName                                                  #Search for a pre-existing account and attach to variable, grab SAMAccountName
     IF($userID -ne $userIDtst){                                                         #IF SAMAccountName is different than what HR provided update SAMAccountName
-        Set-ADUser $empLU -add @{ProxyAddresses = "$userIDtst*******"}                  #Set new email as default and old as secondary proxy
+        Set-ADUser $empLU -add @{ProxyAddresses = "smtp:$userIDtst@*******"}            #Set new email as default and old as secondary proxy
     }
     $DN = $empLU.distinguishedName
         Rename-ADObject -Identity "$DN" -NewName "$NAMEfull"
@@ -138,7 +140,7 @@ IF($cReason -eq 'Rehire' -AND $empLU){
 }elseIF($null -eq $empLU){                                                              #IF account does not exist and not a rehie, then create a new account
     $empLU = New-ADUser -Name $NAMEfull `
                 -Company "*******" `
-                -Country '*******' `
+                -Country 'US' `
                 -DisplayName $displayName `
                 -EmailAddress $email `
                 -EmployeeID $empID `
@@ -151,11 +153,11 @@ IF($cReason -eq 'Rehire' -AND $empLU){
 <#--------------------------------------------------
 |Update account data after reactivation or creation|
 --------------------------------------------------#> 
-$PWord = "$empID@Farm-$storeID"                                                                             #Generate Password based on generated initials and Store ID
-Set-ADUser $empLU -add @{ProxyAddresses = "SMTP:$email"}                                                  #Add proxy to new account
-Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)        #Set password for account
-Set-ADUser $empLU -ChangePasswordAtLogon $true -Enabled $true -manager $mngrAD                              #Set password to expire at login, enable, and set Manager
-Set-ADUser $empLU -replace @{                                                                               #Update account details to current
+$PWord = "*******"                                                                                         #Generate Password based on generated initials and Store ID
+Set-ADUser $empLU -add @{ProxyAddresses = "SMTP:$email"}                                                   #Add proxy to new account
+Set-ADAccountPassword $empLU -reset -newpassword (ConvertTo-SecureString -AsPlainText $PWord -Force)       #Set password for account
+Set-ADUser $empLU -ChangePasswordAtLogon $true -Enabled $true -manager $mngrAD                             #Set password to expire at login, enable, and set Manager
+Set-ADUser $empLU -replace @{                                                                              #Update account details to current
     department = $Dept;
     displayName = $displayName;
     extensionAttribute1 = $DOB;
@@ -165,6 +167,7 @@ Set-ADUser $empLU -replace @{                                                   
     extensionAttribute6 = $mngrAD;
     extensionAttribute10 = $empID;
     extensionAttribute12 = $Phone;
+    extensionAttribute15 = $firearmAccess;
     givenName = $pnScrb
     homePhone = $Phone;
     initials = $empID;
@@ -294,12 +297,9 @@ $hrNotif = Switch($hrNum){
 $JSON = [pscustomobject]@{
     email = $email
     eMGR = $backOffice
-    ext = $3cx
     fullName = $NAMEfull
-    grID = $userIDtst
     hrNotif = $hrNotif
     hrNum = $hrNum
-    init = $empID
     mngrAD = $mngrAD
     msAR = $MS
     pWord = $PWord
