@@ -27,6 +27,7 @@ Set-ADUser $empLU -clear `
     extensionAttribute12,
     extensionAttribute13,
     extensionAttribute14,
+    extensionAttribute15,
     facsimileTelephoneNumber,
     homePhone,
     ipPhone,
@@ -47,12 +48,13 @@ Set-ADUser $empLU -replace @{
     extensionAttribute9 = 'Termed'
 }
 
+#Delay to ensure attributes synce with Entra ID (Azure AD)
 IF($office -eq '*******'){
     Start-Sleep -Seconds 600
 }
 
+Start-Sleep -Seconds 60
 Disable-ADAccount $empLU
-Start-Sleep -Seconds 30
 $empLU | Move-ADObject -TargetPath $OU
 
 <#--------------------------------------------------------------------------------------------------------------------------------------------
@@ -65,6 +67,6 @@ $JSON = [pscustomobject]@{
     desc = $desc
     DID = $DID
     jobTitle = $jobTitle
-    mngrID = "$mngrID@murdochs.com"
+    mngrID = "$mngrID@*******"
 }
 $JSON | ConvertTo-Json -Compress | Write-Output
