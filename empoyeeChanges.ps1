@@ -1,84 +1,86 @@
 param($Dept,$Office,$OUa,$OU,$email,$empID,$empLU,$deptO,$DID,$eA10,$ext,$jobTitleO,$OfficeO,$jobTitle,$3cx,$mngrLU,$City,$mngrAD,$mngrOU,$Phone,$State,$Street,$Zip,$StoreID,$userID,$Groups)
     $City = "%city%"
     $Dept = "%dept%"
-        $Office=Switch($Dept){
+        $Office = Switch($Dept){
                 '*******'{'*******'}
                 '*******'{'*******'}
                 default{"%office%"}
-                }
-        $OUa=Switch($Dept){
+            }
+        $OUa = Switch($Dept){
                 '*******'{'*******'}
                 '*******'{'*******'}
                 default{$Dept}
-                }
-            $OU=IF($Office -eq 'Admin'){
+            }
+            $OU = IF($Office -eq '*******'){
                     "$OUa*******"
                 }else{
                     "$Office*******"
                 }
-    $email="%email%"
-    $empID="%empID%"
-        $empLU=Get-ADUser -Filter {employeeID -eq $empID} -Properties *
-            $deptO=$empLU.department
-            $DID=IF($Office -eq '*******'){
+    $email = "%email%"
+    $empID = "%empID%"
+        $empLU = Get-ADUser -Filter {employeeID -eq $empID} -Properties *
+            $deptO = $empLU.department
+            $DID = IF($Office -eq '*******'){
                     $empLU.extensionAttribute13
                 }
-            $eA10=$empLU.extensionAttribute10
-            $ext=IF($Office -eq '*******'){
+            $eA10 = $empLU.extensionAttribute10
+            $ext = IF($Office -eq '*******'){
                     $empLU.ipPhone
                 }
-            $jobTitleO=$empLU.title
-            $OfficeO=$empLU.physicalDeliveryOfficeName
-            $userOU=$empLU.distinguishedName
-    $jobTitle="%jobTitle%"
-        $3cx=IF($Office -eq '*******' -AND $Office -ne $OfficeO){
+            $jobTitleO = $empLU.title
+            $OfficeO = $empLU.physicalDeliveryOfficeName
+    $firearmAccess = "%firearmAccess%"
+    $jobTitle = "%jobTitle%"
+        $3cx = IF($Office -eq '*******' -AND $Office -ne $OfficeO){
                 'Create extension via 3CX, update Confluence (*******) | IPphone = Extension | extensionAttribute13 = Full number (DID)'
             }elseIF($Office -eq '*******' -AND $Office -eq $OfficeO){
                 "Update job title for associated extension (*******) | Ext: $ext | DID: $DID"
-            }elseIF($Dept -like '*Manager' -OR $Dept -eq 'Bookkeeper' -OR $Dept -eq 'Receiving'){
+            }elseIF($Dept -like '*******' -OR $Dept -eq '*******' -OR $Dept -eq '*******'){
                 "Update $jobTitle extension in $Office, if one exists"
             }else{
                 'N/A'
             }
-        $mngrLU = Get-ADUser -Filter {employeeID -eq "%mngrID%"} -Properties *
-            $mngrAD = $mngrLU.SamAccountName
-            $mngrOU = $mngrLU.distinguishedName
-            $fax = IF("%fax%"){"%fax%"}
-            $Phone = IF("%phone%"){"%phone%"
-                    }else{$mngrLU.extensionAttribute12}
-        $State = "%state%"
-        $StoreID = "%StoreID%"
-        $Street = "%street%"
-        $Zip = "%postalCode%"
-        $userID = "%userID%"
+    $mngrLU = Get-ADUser -Filter {employeeID -eq "%mngrID%"} -Properties *
+        $mngrAD = $mngrLU.SamAccountName
+        $mngrOU = $mngrLU.distinguishedName
+        $fax = IF("%fax%"){"%fax%"}
+        $Phone = IF("%phone%"){"%phone%"
+                }else{$mngrLU.extensionAttribute12}
+    $State = "%state%"
+    $StoreID = "%StoreID%"
+    $Street = "%street%"
+    $Zip = "%postalCode%"
+    $userID = "%userID%"
         $Groups = Get-ADPrincipalGroupMembership $empLU | Where-Object { $_.Name -ne '*******' }
             IF($Dept -eq '*******' -OR $Dept -eq $deptO -AND $office -eq '*******'){
             }elseIF($Groups){
                 Remove-ADPrincipalGroupMembership $empLU -MemberOf $Groups -Confirm:$false
             }
-
 <#--------------------------------------------------------------------------
 |Transfers and Position changes are updated the same, refresh Local AD info|
 --------------------------------------------------------------------------#>
 Set-ADUser $empLU -replace @{
-    department=$Dept;
-    extensionAttribute4=$jobTitle;
-    extensionAttribute5=$Office;
-    extensionAttribute6=$mngrAD;
-    extensionAttribute12=$Phone;
-    homePhone=$Phone;
-    manager=$mngrOU;
-    l=$City;
-    physicalDeliveryOfficeName=$Office;
-    st=$state;
-    streetAddress=$Street;
-    telephoneNumber=$Phone;
-    title=$jobTitle
+    department = $Dept;
+    extensionAttribute4 = $jobTitle;
+    extensionAttribute5 = $Office;
+    extensionAttribute6 = $mngrAD;
+    extensionAttribute12 = $Phone;
+    extensionAttribute15 = $firearmAccess;
+    homePhone = $Phone;
+    manager = $mngrOU;
+    l = $City;
+    physicalDeliveryOfficeName = $Office;
+    st = $state;
+    streetAddress = $Street;
+    telephoneNumber = $Phone;
+    title = $jobTitle
 }
-Set-ADUser $empLU -clear extensionAttribute7
+Set-ADUser $empLU -clear `
+    extensionAttribute7,
+    extensionAttribute8
 IF($fax){
     Set-ADUser $empLU -replace @{
-        facsimileTelephoneNumber=$fax
+        facsimileTelephoneNumber = $fax
     }
 }
 $empLU | Move-ADObject -TargetPath $OU
@@ -183,14 +185,13 @@ IF($Office -ne 'Admin'){                                            #IF not an A
 <#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 |Create JSON array that will be parsed by Power Automate Desktop for use with generating Eagle account and passing data to an email for Help Desk and users in generated email list|
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#>
-$JSON=[pscustomobject]@{
-    eagleAR=$Egl
-    eagleID=$eA10
-    eMGR=$eMGR
-    ext=$3cx
-    jobTitleO=$jobTitleO
-    latAR=$Lat
-    msAR=$MS
-    officeO=$OfficeO
+$JSON = [pscustomobject]@{
+    initials = $eA10
+    eMGR = $backOffice
+    ext = $3cx
+    jobTitleO = $jobTitleO
+    mngrEmail = "$mngrAD@*******"
+    msAR = $MS
+    officeO = $OfficeO
 }
 $JSON | ConvertTo-Json -Compress | Write-Output
